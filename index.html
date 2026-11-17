@@ -702,10 +702,12 @@ body.simple-mode #screen-game .g-quiz{
   padding:9px 10px calc(10px + var(--safe-bottom));
 }
 body.simple-mode #screen-game #timeBar,
-body.simple-mode #screen-game #exp,
 body.simple-mode #screen-game .opp-state,
 body.simple-mode #screen-game .g-q .q-no,
 body.simple-mode #screen-game .g-q .ribbon{display:none !important;}
+body.simple-mode #screen-game #exp{
+  flex:0 0 auto; height:var(--expH); min-height:var(--expH); overflow-y:auto;
+}
 body.simple-mode #screen-game .g-q{
   height:clamp(88px,14vh,116px); min-height:clamp(88px,14vh,116px);
   padding:10px 12px; border-radius:15px;
@@ -729,6 +731,7 @@ body.simple-mode #screen-game .g-choice.none .m{font-size:clamp(.9rem,4vw,1.08re
   body.simple-mode #screen-game .g-quiz{gap:6px; padding-top:5px;}
   body.simple-mode #screen-game .g-q{height:76px; min-height:76px;}
   body.simple-mode #screen-game .g-choices{grid-auto-rows:minmax(58px,1fr); gap:6px;}
+  body.simple-mode #screen-game #exp{height:46px; min-height:46px;}
 }
 
 /* ---------- 延長戦(緊迫感のある配色) ---------- */
