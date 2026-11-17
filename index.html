@@ -2943,7 +2943,7 @@ function renderHistory(){
    ===================================================================== */
 const LS_SET = 'tb_settings_v1', LS_PROF = 'tb_profile', LS_RULES = 'tb_rules', LS_TOUR = 'tb_tour_done';
 const Settings = {
-  v:{skin:'teppeki', sound:true, vol:0.6, vib:true, dev:'auto', simple:false},
+  v:{skin:'teppeki', sound:true, vol:0.6, vib:true, dev:'auto', simple:true},
   load(){
     try{
       const s = JSON.parse(localStorage.getItem(LS_SET) || 'null'); if(!s || typeof s !== 'object') return;
