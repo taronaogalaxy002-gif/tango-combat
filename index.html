@@ -670,6 +670,67 @@ input[type=range]{flex:1 1 auto; min-width:0; max-width:200px; accent-color:var(
 :root[data-dev="compact"] .g-q.qen.sz-l .g-q-text{font-size:1.5rem;}
 :root[data-dev="compact"] .g-q.qen.sz-m .g-q-text{font-size:1.25rem;}
 
+/* ---------- 簡易モード: 単語と回答を主役にする ---------- */
+.simple-stats{display:none;}
+body.simple-mode #screen-game .g-top,
+body.simple-mode #screen-game .g-hud,
+body.simple-mode #screen-game .g-field{display:none !important;}
+body.simple-mode #screen-game{padding:0; background:var(--bg);}
+body.simple-mode #simpleStats{
+  display:flex; flex:0 0 auto; flex-direction:column; gap:7px;
+  padding:calc(9px + var(--safe-top)) 10px 0;
+}
+.simple-stats-head{display:flex; align-items:center; justify-content:space-between; gap:8px; min-height:24px;}
+.simple-stats-title{font-size:.72rem; font-weight:900; letter-spacing:.12em; color:var(--text-sub);}
+.simple-stats-note{font-size:.56rem; color:var(--text-sub); margin-left:7px; letter-spacing:0; font-weight:600;}
+.simple-stats-grid{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:8px;}
+.simple-stat-card{min-width:0; padding:8px 9px 7px; border:1.5px solid var(--border); border-radius:12px; background:var(--bg-elevated); box-shadow:0 3px 12px rgba(0,0,0,.06);}
+.simple-stat-card.me{border-color:var(--accent);}
+.simple-stat-name{display:flex; align-items:center; justify-content:space-between; gap:5px; min-width:0; font-size:.66rem; font-weight:800; color:var(--text-sub);}
+.simple-stat-name b{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text-main); font-size:.76rem;}
+.simple-stat-name em{flex:0 0 auto; font-style:normal; font-size:.53rem; letter-spacing:.06em; opacity:.8;}
+.simple-stat-scoreline{display:flex; align-items:baseline; gap:7px; margin:1px 0 2px; line-height:1.05;}
+.simple-stat-score{font-family:var(--font-heading); font-size:clamp(1.65rem,7vw,2.15rem); font-weight:900; font-variant-numeric:tabular-nums; letter-spacing:-.04em; color:var(--accent);}
+.simple-stat-score small{font-family:var(--font-sans); font-size:.55rem; letter-spacing:0; color:var(--text-sub); margin-left:3px;}
+.simple-stat-delta{font-size:.64rem; font-weight:900; font-variant-numeric:tabular-nums; color:var(--text-sub);}
+.simple-stat-delta.up{color:#29945e;}.simple-stat-delta.down{color:#d34b43;}
+.simple-stat-details{display:flex; justify-content:space-between; gap:4px; border-top:1px solid var(--border); padding-top:5px; color:var(--text-sub); font-size:.58rem; white-space:nowrap;}
+.simple-stat-details b{color:var(--text-main); font-size:.66rem; font-variant-numeric:tabular-nums;}
+.simple-stat-foot{font-size:.54rem; line-height:1.3; color:var(--text-sub); text-align:right;}
+body.simple-mode #screen-game .g-quiz{
+  flex:1 1 auto; min-height:0; justify-content:flex-end; gap:9px;
+  padding:9px 10px calc(10px + var(--safe-bottom));
+}
+body.simple-mode #screen-game #timeBar,
+body.simple-mode #screen-game #exp,
+body.simple-mode #screen-game .opp-state,
+body.simple-mode #screen-game .g-q .q-no,
+body.simple-mode #screen-game .g-q .ribbon{display:none !important;}
+body.simple-mode #screen-game .g-q{
+  height:clamp(88px,14vh,116px); min-height:clamp(88px,14vh,116px);
+  padding:10px 12px; border-radius:15px;
+}
+body.simple-mode #screen-game .g-q .g-q-text{max-height:100%;}
+body.simple-mode #screen-game .g-q.qen .g-q-text{font-size:clamp(1.65rem,7.5vw,2.35rem);}
+body.simple-mode #screen-game .g-q.qja .g-q-text{font-size:clamp(1.25rem,5.5vw,1.75rem);}
+body.simple-mode #screen-game .g-choices{
+  flex:1 1 auto; min-height:0; grid-template-columns:repeat(2,minmax(0,1fr));
+  grid-auto-rows:minmax(66px,1fr); gap:8px; align-content:stretch;
+}
+body.simple-mode #screen-game .g-choice{padding:9px 10px; gap:8px; border-radius:13px;}
+body.simple-mode #screen-game .g-choice .n{width:25px; height:25px; font-size:.78rem;}
+body.simple-mode #screen-game .g-choice.en .m{font-size:clamp(.96rem,4.4vw,1.22rem); line-height:1.25; -webkit-line-clamp:3;}
+body.simple-mode #screen-game .g-choice.ja .m{font-size:clamp(.82rem,3.7vw,1rem); line-height:1.25; -webkit-line-clamp:3;}
+body.simple-mode #screen-game .g-choice.none .m{font-size:clamp(.9rem,4vw,1.08rem);}
+@media (max-height:650px){
+  body.simple-mode #simpleStats{gap:4px; padding-top:calc(5px + var(--safe-top));}
+  .simple-stat-card{padding:5px 7px;}
+  .simple-stat-score{font-size:1.55rem;}
+  body.simple-mode #screen-game .g-quiz{gap:6px; padding-top:5px;}
+  body.simple-mode #screen-game .g-q{height:76px; min-height:76px;}
+  body.simple-mode #screen-game .g-choices{grid-auto-rows:minmax(58px,1fr); gap:6px;}
+}
+
 /* ---------- 延長戦(緊迫感のある配色) ---------- */
 body.ot{--bg:#1a090c; --bg-elevated:#2a1015; --text-main:#fdecea; --text-sub:#e0a9a4; --border:#5c2328; --accent:#ee4a3c; --badge-syn-bg:rgba(238,74,60,.2); --badge-syn-border:#ee4a3c; --badge-syn-text:#ffb3ab; --badge-ant-bg:rgba(255,160,60,.18); --badge-ant-border:#ff9f3c; --badge-ant-text:#ffd29a; --btn-text:#fff;}
 body.ot #screen-game{background:radial-gradient(ellipse at 50% 18%,#4d0f12 0%,#1a090c 68%);}
@@ -872,6 +933,28 @@ body.ot #screen-game::after{content:''; position:absolute; inset:0; pointer-even
         <div class="cd" id="countdown"></div>
       </div>
       <div class="g-shop" id="shop"></div>
+    </div>
+
+    <div class="simple-stats" id="simpleStats" aria-live="polite">
+      <div class="simple-stats-head">
+        <div><span class="simple-stats-title">BATTLE INDEX</span><span class="simple-stats-note">正答率 × 解答速度</span></div>
+        <button type="button" class="pill-btn sm" data-act="back">退出</button>
+      </div>
+      <div class="simple-stats-grid">
+        <div class="simple-stat-card me">
+          <div class="simple-stat-name"><b id="simpleNameMe">あなた</b><em>YOU</em></div>
+          <div class="simple-stat-scoreline"><div class="simple-stat-score"><span id="simpleRatingMe">30.0</span><small>偏差値</small></div><span class="simple-stat-delta" id="simpleDeltaMe">±0.0</span></div>
+          <div class="simple-stat-details"><span>正答率 <b id="simpleAccuracyMe">—</b></span><span>平均 <b id="simpleSpeedMe">—</b></span></div>
+          <div class="simple-stat-details"><span>正解 <b id="simpleCorrectMe">0</b></span><span>ミス <b id="simpleWrongMe">0</b></span><span>解答 <b id="simpleAttemptsMe">0</b></span></div>
+        </div>
+        <div class="simple-stat-card">
+          <div class="simple-stat-name"><b id="simpleNameOpp">相手</b><em>OPPONENT</em></div>
+          <div class="simple-stat-scoreline"><div class="simple-stat-score"><span id="simpleRatingOpp">30.0</span><small>偏差値</small></div><span class="simple-stat-delta" id="simpleDeltaOpp">±0.0</span></div>
+          <div class="simple-stat-details"><span>正答率 <b id="simpleAccuracyOpp">—</b></span><span>平均 <b id="simpleSpeedOpp">—</b></span></div>
+          <div class="simple-stat-details"><span>正解 <b id="simpleCorrectOpp">0</b></span><span>ミス <b id="simpleWrongOpp">0</b></span><span>解答 <b id="simpleAttemptsOpp">0</b></span></div>
+        </div>
+      </div>
+      <div class="simple-stat-foot">初期値30.0 ・ 正解は速いほど加点(＋1.0〜2.5) ・ 誤答は−2.0</div>
     </div>
 
     <div class="g-quiz">
@@ -2489,7 +2572,7 @@ const Net = {
       case 'color': if(G.phase === 'lobby') Net.applyColor(1, m.c); break;
       case 'chat': if(G.phase !== 'game') Net.relayChat(1, m.text); break;
       case 'leave': Net.hostOnGuestLeave(); break;
-      case 'ans': if(G.phase === 'game') qeAnswer(1, m.n, m.i); break;
+      case 'ans': if(G.phase === 'game') qeAnswer(1, m.n, m.i, m.ms); break;
       case 'buy': if(G.phase === 'game' && G.S) { if(Sim.buy(G.S, 1, m.k)) Game.onBought(1); } break;
       case 'bar': if(G.phase === 'game' && G.S) Sim.setBar(G.S, 1, Number(m.v) / 100); break;
       case 'flag': if(G.phase === 'game' && G.S) Sim.toggleFlag(G.S, 1, m.i); break;
@@ -2659,11 +2742,12 @@ function qeOpen(){
   qeLater(QE.limit * 1000, () => qeResolve({type:'timeout'}));
   CPU.scheduleAnswer();
 }
-function qeAnswer(p, n, idx){
+function qeAnswer(p, n, idx, answerMs){
   if(QE.phase !== 'answer' || n !== QE.n || QE.locked.has(p) || !(idx >= 0 && idx < 6)) return;
-  if(idx === QE.cur.correctIdx){ qeResolve({type:'win', p}); return; }
+  const spent = clamp(Number.isFinite(Number(answerMs)) ? Number(answerMs) : Date.now() - QE.t0, 0, QE.limit * 1000);
+  if(idx === QE.cur.correctIdx){ qeResolve({type:'win', p, ms:spent}); return; }
   QE.locked.add(p); G.S.combo[p] = 0; QE.stat[p].ng++;
-  qeEmit({t:'lock', n, p, i:idx});
+  qeEmit({t:'lock', n, p, i:idx, ms:Math.round(spent)});
   if(QE.locked.size >= 2) qeResolve({type:'wrong'});
 }
 function qeResolve(res){
@@ -2677,15 +2761,56 @@ function qeResolve(res){
     g = Sim.calcPoints(q.hard, S.combo[p], tr); S.pts[p] += g;
     QE.stat[p].won++; if(S.combo[p] > QE.stat[p].maxCombo) QE.stat[p].maxCombo = S.combo[p];
   }
-  qeEmit({t:'res', n:QE.n, ty:res.type, p:res.p === undefined ? -1 : res.p, ci:q.correctIdx, g, tr:tr ? 1 : 0});
+  qeEmit({t:'res', n:QE.n, ty:res.type, p:res.p === undefined ? -1 : res.p, ci:q.correctIdx, g, tr:tr ? 1 : 0, ms:Math.round(res.ms || 0)});
   qeLater(qePace().interval, qeNext);
 }
+
+/* ===================== 簡易モード用バトル成績 ===================== */
+const SimpleStats = {
+  players:[null, null],
+  fresh(){ return {rating:30, attempts:0, correct:0, wrong:0, totalMs:0, lastDelta:0}; },
+  reset(){ this.players = [this.fresh(), this.fresh()]; this.render(); },
+  record(p, correct, ms, limitSec){
+    if(p !== 0 && p !== 1) return;
+    const s = this.players[p] || (this.players[p] = this.fresh());
+    const safeLimit = Math.max(1, Number(limitSec) || 10) * 1000;
+    const elapsed = clamp(Number(ms) || 0, 0, safeLimit);
+    const ratio = clamp(elapsed / safeLimit, 0, 1);
+    const delta = correct ? 1.0 + 1.5 * (1 - ratio) : -2.0;
+    s.attempts++;
+    s.totalMs += elapsed;
+    if(correct) s.correct++; else s.wrong++;
+    s.rating = clamp(s.rating + delta, 0, 99.9);
+    s.lastDelta = delta;
+    this.render();
+  },
+  render(){
+    if(!$('simpleStats')) return;
+    const me = G.me === 1 ? 1 : 0, op = 1 - me;
+    const fill = (idx, suffix) => {
+      const p = G.players[idx] || {};
+      const s = this.players[idx] || this.fresh();
+      const put = (id, value) => { const el = $(id + suffix); if(el) el.textContent = String(value); };
+      put('simpleName', p.name || (idx === 0 ? 'プレイヤー1' : 'プレイヤー2'));
+      put('simpleRating', s.rating.toFixed(1));
+      const de = $('simpleDelta' + suffix);
+      if(de){ de.textContent = s.lastDelta > 0 ? '+' + s.lastDelta.toFixed(1) : s.lastDelta < 0 ? s.lastDelta.toFixed(1) : '±0.0'; de.className = 'simple-stat-delta' + (s.lastDelta > 0 ? ' up' : s.lastDelta < 0 ? ' down' : ''); }
+      put('simpleAccuracy', s.attempts ? Math.round(s.correct / s.attempts * 100) + '%' : '—');
+      put('simpleSpeed', s.attempts ? (s.totalMs / s.attempts / 1000).toFixed(2) + '秒' : '—');
+      put('simpleCorrect', s.correct);
+      put('simpleWrong', s.wrong);
+      put('simpleAttempts', s.attempts);
+    };
+    fill(me, 'Me'); fill(op, 'Opp');
+  }
+};
 
 /* ===================== 両画面共通の表示(QV) ===================== */
 const QZ = {n:0, phase:'idle', q:null, t0:0, limit:10, sent:false, locked:false, history:[], answered:0};
 const QV = {
   reset(){
     QZ.n = 0; QZ.phase = 'idle'; QZ.q = null; QZ.sent = false; QZ.locked = false; QZ.history = []; QZ.answered = 0;
+    SimpleStats.reset();
     const exp = $('exp'); exp.dataset.state = 'prev'; exp.innerHTML = '<div class="empty">直前の問題の解説がここに表示されます。</div>';
     $('choices').innerHTML = ''; $('qBox').innerHTML = ''; QV.resetBar();
   },
@@ -2709,6 +2834,7 @@ const QV = {
         break;
       case 'lock':
         if(ev.n !== QZ.n) return;
+        SimpleStats.record(ev.p, false, ev.ms, QZ.limit);
         if(ev.p === G.me){
           QZ.locked = true;
           const b = $('choices').children[ev.i];
@@ -2723,6 +2849,7 @@ const QV = {
         if(ev.n !== QZ.n || !QZ.q) return;
         QZ.phase = 'resolved'; QV.freezeBar();
         const q = QZ.q; q.ci = ev.ci;
+        if(ev.ty === 'win' && (ev.p === 0 || ev.p === 1)) SimpleStats.record(ev.p, true, ev.ms, QZ.limit);
         const isNone = ev.ci === 5;
         const box = $('choices'); box.classList.add('resolved');
         Array.from(box.children).forEach((b, i) => { b.classList.remove('locked'); if(i === ev.ci) b.classList.add('correct'); b.disabled = true; });
@@ -2743,7 +2870,8 @@ const QV = {
     if(QZ.phase !== 'answer' || QZ.locked || QZ.sent) return;
     QZ.sent = true;
     const b = $('choices').children[idx]; if(b) b.classList.add('picked');
-    if(G.role === 'host') qeAnswer(0, QZ.n, idx); else Net.sendHost({t:'ans', n:QZ.n, i:idx});
+    const spent = Math.round(clamp(performance.now() - QZ.t0, 0, QZ.limit * 1000));
+    if(G.role === 'host') qeAnswer(0, QZ.n, idx, spent); else Net.sendHost({t:'ans', n:QZ.n, i:idx, ms:spent});
   },
   qSize(text, qField){
     const n = text.length;
@@ -2815,7 +2943,7 @@ function renderHistory(){
    ===================================================================== */
 const LS_SET = 'tb_settings_v1', LS_PROF = 'tb_profile', LS_RULES = 'tb_rules', LS_TOUR = 'tb_tour_done';
 const Settings = {
-  v:{skin:'teppeki', sound:true, vol:0.6, vib:true, dev:'auto'},
+  v:{skin:'teppeki', sound:true, vol:0.6, vib:true, dev:'auto', simple:false},
   load(){
     try{
       const s = JSON.parse(localStorage.getItem(LS_SET) || 'null'); if(!s || typeof s !== 'object') return;
@@ -2824,6 +2952,7 @@ const Settings = {
       if(typeof s.vol === 'number') Settings.v.vol = clamp(s.vol, 0, 1);
       if(typeof s.vib === 'boolean') Settings.v.vib = s.vib;
       if(typeof s.dev === 'string') Settings.v.dev = s.dev;
+      if(typeof s.simple === 'boolean') Settings.v.simple = s.simple;
     }catch(e){}
   },
   save(){ try{ localStorage.setItem(LS_SET, JSON.stringify(Settings.v)); }catch(e){} },
@@ -3014,7 +3143,7 @@ const CPU = (function(){
     const delay = Math.max(0.35, base * rnd(0.75, 1.25));
     if(delay >= pc.limit) return;                              // 制限時間より遅い → 答えない(人間が取る/時間切れ)
     const n = QE.n, idx = QE.cur.correctIdx;
-    qeLater(Math.round(delay * 1000), () => qeAnswer(P, n, idx));
+    qeLater(Math.round(delay * 1000), () => qeAnswer(P, n, idx, Date.now() - QE.t0));
   }
 
   /* ---------------- 盤面の読み取り ---------------- */
@@ -3191,11 +3320,12 @@ const Game = {
     QV.reset();
     UI.buildGameUI();
     UI.showScreen('game');
+    SimpleStats.render();
     Draw.setMap(Game.map(), G.role === 'guest');
     requestAnimationFrame(() => { Draw.resize(); Draw.setMap(Game.map(), G.role === 'guest'); });
     Game.setBarUI(0.5);
     Game.startLoops();
-    if(!re && !tourDone('game')) setTimeout(() => { if(G.phase === 'game' && !GM.finished) Tour.run(Tour.gameSteps(), {key:'game', nb:true}); }, 4600);
+    if(!re && !Settings.v.simple && !tourDone('game')) setTimeout(() => { if(G.phase === 'game' && !GM.finished) Tour.run(Tour.gameSteps(), {key:'game', nb:true}); }, 4600);
   },
   startLoops(){
     GM.raf = requestAnimationFrame(Game.frame);
@@ -3526,6 +3656,7 @@ const UI = {
   showScreen(name){
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     $('screen-' + name).classList.add('active');
+    document.body.classList.toggle('simple-mode', name === 'game' && !!Settings.v.simple);
     document.body.setAttribute('data-screen', name);
     if(name !== 'home' && !UI._pushed){ try{ history.pushState({tb:1}, ''); UI._pushed = true; }catch(e){} }
     if(name === 'game') setTimeout(() => Draw.resize(), 30);
@@ -3863,6 +3994,9 @@ const UI = {
         <div class="stepper-row"><span class="stepper-label">音量</span><input type="range" id="volRange" min="0" max="100" value="${Math.round(v.vol * 100)}" aria-label="音量"></div>
         <div class="stepper-row"><span class="stepper-label">振動</span><div class="seg inline"><button type="button" class="${v.vib ? 'active' : ''}" data-act="set-vib" data-v="1">ON</button><button type="button" class="${v.vib ? '' : 'active'}" data-act="set-vib" data-v="0">OFF</button></div></div>
       </div>
+      <div class="panel"><h2 class="panel-title">ゲーム画面</h2>
+        <div class="stepper-row"><span class="stepper-label">簡易モード</span><div class="seg inline"><button type="button" class="${v.simple ? 'active' : ''}" data-act="set-simple" data-v="1">ON</button><button type="button" class="${v.simple ? '' : 'active'}" data-act="set-simple" data-v="0">OFF</button></div></div>
+        <p class="hint">ONにすると戦場・ショップなどを隠し、単語と大きな解答ボタン、両者のバトル偏差値・正答率・平均解答時間を表示します。</p></div>
       <div class="panel"><h2 class="panel-title">機種(表示)<small>いま: ${esc((DEVS.find(d => d.id === Dev.eff()) || {}).label || '')}</small></h2>
         <div class="seg dev">${DEVS.map(d => `<button type="button" class="${v.dev === d.id ? 'active' : ''}" data-act="dev" data-id="${d.id}">${esc(d.label)}</button>`).join('')}</div>
         <p class="hint">ボタンや文字が重なって見えるときは、お使いの画面に近いものを選んでください。</p></div>`;
@@ -3952,6 +4086,7 @@ function handleAct(el){
     case 'skin': UI.setSkin(d.id); break;
     case 'set-sound': Settings.set('sound', d.v === '1'); UI.renderSettings(); if(d.v === '1') Snd.play('correct'); break;
     case 'set-vib': Settings.set('vib', d.v === '1'); UI.renderSettings(); if(d.v === '1') vib([40]); break;
+    case 'set-simple': Settings.set('simple', d.v === '1'); UI.renderSettings(); UI.toast(Settings.v.simple ? '簡易モードをONにしました。次の対戦から反映されます' : '簡易モードをOFFにしました。次の対戦から反映されます'); break;
     case 'dev': Settings.set('dev', d.id); Dev.apply(); UI.renderSettings(); break;
     case 'flag-open': UI.renderFlags(); UI.openModal('mFlag'); break;
     case 'flag-close': UI.closeModal('mFlag'); break;
