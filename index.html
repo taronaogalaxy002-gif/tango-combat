@@ -1097,7 +1097,7 @@ body.ot #screen-game::after{content:''; position:absolute; inset:0; pointer-even
 
 /* ================= CONFIG(得点・戦闘の数値は Sim.BAL に集約) ================= */
 const CONFIG = {
-  VERSION: '1.3.1',
+  VERSION: '1.4',
   /* 単語データ: GitHub Gist 2つ(前半 / 後半)。順に結合して使う */
   DATA_URLS: [
     'https://gist.githubusercontent.com/taronaogalaxy002-gif/65144621efb78b5625e0075967f78c1d/raw',
@@ -1148,10 +1148,17 @@ const TARGET_SECTION_TITLES = [
   'Part 2 重要単語','Part 2 重要単語','Part 2 重要単語','Part 2 重要単語','Part 2 重要単語','Part 2 重要単語','Part 2 重要単語',
   'Part 3 難単語','Part 3 難単語','Part 3 難単語','Part 3 難単語'
 ];
+const TARGET1200_SECTION_STARTS = [1,101,201,301,401,501,601,701,801,901,1001,1101,1201,1301,1401,1501,1601];
+const TARGET1200_SECTION_TITLES = [
+  '単語・熟語','単語・熟語','単語・熟語','単語・熟語','単語・熟語','単語・熟語','単語・熟語','単語・熟語','単語・熟語',
+  '単語・熟語','単語・熟語','単語・熟語','単語・熟語','単語・熟語','単語・熟語','単語・熟語','単語・熟語'
+];
 const BOOKS = {
   teppeki:{label:'鉄壁', short:'鉄壁', expected:2176, starts:SECTION_STARTS, titles:SECTION_TITLES, hardFrom:47, urls:null},
   target:{label:'ターゲット1900', short:'ターゲット', expected:1900, starts:TARGET_SECTION_STARTS, titles:TARGET_SECTION_TITLES, hardFrom:16,
-          urls:['https://raw.githubusercontent.com/taronaogalaxy002-gif/tango-data/main/target_part1.json', 'https://raw.githubusercontent.com/taronaogalaxy002-gif/tango-data/main/target_part2.json']}
+          urls:['https://raw.githubusercontent.com/taronaogalaxy002-gif/tango-data/main/target_part1.json', 'https://raw.githubusercontent.com/taronaogalaxy002-gif/tango-data/main/target_part2.json']},
+  target1200:{label:'ターゲット1200', short:'ターゲット1200', expected:1700, starts:TARGET1200_SECTION_STARTS, titles:TARGET1200_SECTION_TITLES, hardFrom:99,
+          urls:['https://raw.githubusercontent.com/taronaogalaxy002-gif/tango-data/main/target1200_part1.json', 'https://raw.githubusercontent.com/taronaogalaxy002-gif/tango-data/main/target1200_part2.json']}
 };
 let curBook = 'teppeki';
 const bookCache = {};
@@ -2295,7 +2302,7 @@ function validRule(key, v){
     case 'size': return v === 's' || v === 'm' || v === 'l';
     case 'cpuSpeed': return typeof v === 'number' && v >= CONFIG.CPU.speedMin && v <= CONFIG.CPU.speedMax && Math.abs(v * 2 - Math.round(v * 2)) < 1e-9;
     case 'cpuLevel': return v === 'n' || v === 'a';
-    case 'book': return v === 'teppeki' || v === 'target';
+    case 'book': return v === 'teppeki' || v === 'target' || v === 'target1200';
     case 'sections': return Array.isArray(v) && v.length > 0 && v.every(i => Number.isInteger(i) && i >= 0 && i < 50);
   }
   return false;
@@ -3171,6 +3178,9 @@ const Dev = {
 
 /* ---------------- 更新履歴・遊び方 ---------------- */
 const CHANGELOG = [
+  {v:'1.4', d:'2026-11-19', items:[
+    '単語帳に「ターゲット1200」(改訂版)を追加。単語・熟語あわせて1700語を、100語ごとの17セクションから出題できます。'
+  ]},
   {v:'1.3.1', d:'2026-11-18', items:[
     '単語帳の切り替え直後に、出題範囲や語数の表示が前の単語帳のままになったり、切り替えが反映されなかったりする不具合を修正。読み込み中は「読み込んでいます」と表示されます。'
   ]},
@@ -3997,7 +4007,7 @@ const UI = {
     </div>` : ''}
     <div class="panel"><h2 class="panel-title">ルール<small>どちらも変更できます</small></h2>
       <div class="row-label">単語帳</div>
-      ${seg('book', [{v:'teppeki', t:'鉄壁'}, {v:'target', t:'ターゲット1900'}], R.book || 'teppeki')}
+      ${seg('book', [{v:'teppeki', t:'鉄壁'}, {v:'target', t:'ターゲット1900'}, {v:'target1200', t:'ターゲット1200'}], R.book || 'teppeki')}
       <div class="row-label">出題方向</div>
       ${seg('dir', [{v:'ja-en', t:'和英'}, {v:'en-ja', t:'英和'}, {v:'mix', t:'ミックス'}], R.direction)}
       ${stepper('reveal', '選択肢が出るまでの待ち', 0, 3000, 500)}
