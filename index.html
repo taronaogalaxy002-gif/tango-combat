@@ -705,6 +705,7 @@ body.simple-mode #screen-game .g-quiz{
 body.simple-mode #screen-game .opp-state,
 body.simple-mode #screen-game .g-q .q-no,
 body.simple-mode #screen-game .g-q .ribbon{display:none !important;}
+body.simple-mode #screen-game #timeBar{flex:0 0 8px; border-radius:4px;}
 body.simple-mode #screen-game #exp{
   flex:0 0 auto; height:var(--expH); min-height:var(--expH); overflow-y:auto;
 }
@@ -3383,11 +3384,7 @@ const Game = {
       const A = SimpleStats.players[0], B = SimpleStats.players[1];
       const r0 = A ? A.rating : 30, r1 = B ? B.rating : 30;
       rate = [Math.round(r0 * 10) / 10, Math.round(r1 * 10) / 10];
-      const acc = s => (s && s.attempts) ? s.correct / s.attempts : 0;
-      const avg = s => (s && s.attempts) ? s.totalMs / s.attempts : Infinity;
-      if(Math.abs(r0 - r1) > 0.049){ S.winner = r0 > r1 ? 0 : 1; S.reason = 'rating'; }
-      else if(acc(A) !== acc(B)){ S.winner = acc(A) > acc(B) ? 0 : 1; S.reason = 'rating'; }
-      else if(avg(A) !== avg(B)){ S.winner = avg(A) < avg(B) ? 0 : 1; S.reason = 'rating'; }
+      if(rate[0] !== rate[1]){ S.winner = rate[0] > rate[1] ? 0 : 1; S.reason = 'rating'; }
       else { S.winner = -1; S.reason = 'draw'; }
     }
     const res = {w:S.winner, rs:S.reason, rate:rate, pts:[Math.round(S.pts[0]), Math.round(S.pts[1])], tiles:[Sim.tileCount(S, 0), Sim.tileCount(S, 1)],
@@ -3666,7 +3663,7 @@ const Prof = {
 const tourDone = k => { try{ return !!(JSON.parse(localStorage.getItem(LS_TOUR) || '{}'))[k]; }catch(e){ return false; } };
 const setTourDone = k => { try{ const o = JSON.parse(localStorage.getItem(LS_TOUR) || '{}'); o[k] = 1; localStorage.setItem(LS_TOUR, JSON.stringify(o)); }catch(e){} };
 
-const REASON_TEXT = {hq:'本陣の防御力が0になりました', tiles:'時間切れ:陣地の点数で判定(要所は3倍)', def:'陣地の点数が同点:防御力の合計で判定', draw:'完全に同点でした', forfeit:'相手が退出しました', rating:'偏差値で判定(同点時は正答率・平均解答時間)'};
+const REASON_TEXT = {hq:'本陣の防御力が0になりました', tiles:'時間切れ:陣地の点数で判定(要所は3倍)', def:'陣地の点数が同点:防御力の合計で判定', draw:'完全に同点でした', forfeit:'相手が退出しました', rating:'偏差値で判定'};
 
 const UI = {
   _pushed:false, _ignorePop:false, confirmCb:null, tplState:{}, tplGen:0, tab:'rules',
@@ -3985,11 +3982,12 @@ const UI = {
     const nm = i => P[i] ? `<span class="fl">${flagSvg(P[i].flag)}</span><b>${esc(P[i].name)}</b>` : '<b>—</b>';
     const row = (label, a, b) => `<div class="r"><span>${a}</span><em>${label}</em><span>${b}</span></div>`;
     const q = res.qs || [{}, {}], st = res.st || [{}, {}];
+    const quizRows = row('正解数', q[me].won, q[op].won) + row('ミス', q[me].ng, q[op].ng) + row('最大連続', q[me].maxCombo, q[op].maxCombo);
+    const battleRows = row('陣地の点数', res.score[me], res.score[op]) + row('保有マス', res.tiles[me], res.tiles[op]) + quizRows +
+      row('武器の購入', st[me].bought, st[op].bought) + row('出撃', st[me].launched, st[op].launched) +
+      row('占領したマス', st[me].captured, st[op].captured) + row('奪われたマス', st[me].lost, st[op].lost);
     $('resTable').innerHTML = `<div class="r head"><span>${nm(me)}</span><em></em><span>${nm(op)}</span></div>` +
-      (res.rate ? row('偏差値', res.rate[me].toFixed(1), res.rate[op].toFixed(1)) : '') +
-      row('陣地の点数', res.score[me], res.score[op]) + row('保有マス', res.tiles[me], res.tiles[op]) + row('正解数', q[me].won, q[op].won) +
-      row('ミス', q[me].ng, q[op].ng) + row('最大連続', q[me].maxCombo, q[op].maxCombo) + row('武器の購入', st[me].bought, st[op].bought) +
-      row('出撃', st[me].launched, st[op].launched) + row('占領したマス', st[me].captured, st[op].captured) + row('奪われたマス', st[me].lost, st[op].lost) +
+      (res.rate ? row('偏差値', res.rate[me].toFixed(1), res.rate[op].toFixed(1)) + quizRows : battleRows) +
       `<div class="r foot"><span></span><em>${res.n}問 ・ ${Math.floor(res.t / 60)}分${res.t % 60}秒</em><span></span></div>`;
     UI.renderResultFoot();
     UI.addChat({from:-1, text:'試合が終わりました。ここでチャットできます'});
@@ -4016,7 +4014,7 @@ const UI = {
       </div>
       <div class="panel"><h2 class="panel-title">ゲーム画面</h2>
         <div class="stepper-row"><span class="stepper-label">簡易モード</span><div class="seg inline"><button type="button" class="${v.simple ? 'active' : ''}" data-act="set-simple" data-v="1">ON</button><button type="button" class="${v.simple ? '' : 'active'}" data-act="set-simple" data-v="0">OFF</button></div></div>
-        <p class="hint">ONにすると戦場・ショップなどを隠し、単語と大きな解答ボタン、両者のバトル偏差値・正答率・平均解答時間を表示します。簡易モードでは勝敗は偏差値で決まります(本陣を落としても試合は最後まで続きます)。</p></div>
+        <p class="hint">ONにすると戦場・ショップなどを隠し、単語と大きな解答ボタン、両者のバトル偏差値・正答率・平均解答時間を表示します。簡易モードでは勝敗は偏差値だけで決まります(本陣を落としても試合は最後まで続き、延長戦も必ずあります)。</p></div>
       <div class="panel"><h2 class="panel-title">機種(表示)<small>いま: ${esc((DEVS.find(d => d.id === Dev.eff()) || {}).label || '')}</small></h2>
         <div class="seg dev">${DEVS.map(d => `<button type="button" class="${v.dev === d.id ? 'active' : ''}" data-act="dev" data-id="${d.id}">${esc(d.label)}</button>`).join('')}</div>
         <p class="hint">ボタンや文字が重なって見えるときは、お使いの画面に近いものを選んでください。</p></div>`;
