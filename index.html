@@ -1097,7 +1097,7 @@ body.ot #screen-game::after{content:''; position:absolute; inset:0; pointer-even
 
 /* ================= CONFIG(得点・戦闘の数値は Sim.BAL に集約) ================= */
 const CONFIG = {
-  VERSION: '1.3',
+  VERSION: '1.3.1',
   /* 単語データ: GitHub Gist 2つ(前半 / 後半)。順に結合して使う */
   DATA_URLS: [
     'https://gist.githubusercontent.com/taronaogalaxy002-gif/65144621efb78b5625e0075967f78c1d/raw',
@@ -1296,32 +1296,36 @@ async function loadWords(){
 }
 async function loadBookWords(key){
   if(bookCache[key]) return bookCache[key];
-  let list;
-  if(key === 'teppeki'){ list = (await loadWords()).words; }
+  let entry;
+  if(key === 'teppeki'){ const r = await loadWords(); entry = {words:r.words, info:r}; }
   else{
     const B = BOOKS[key];
     const jsons = await Promise.all(B.urls.map(u => fetchJson(u, 15000)));
     const arrays = jsons.map(extractArray);
-    list = normalizeWords(arrays);
+    const list = normalizeWords(arrays);
     validateWords(list, B.expected);
-    dataInfo = {source:'github', parts:arrays.map(a => a.length), note:''};
+    entry = {words:list, info:{source:'github', parts:arrays.map(a => a.length), note:''}};
   }
-  bookCache[key] = list;
-  return list;
+  bookCache[key] = entry;
+  return entry;
 }
+let bookSeq = 0;
 async function setBook(key){
   if(!BOOKS[key]) key = 'teppeki';
   if(key === curBook && bookCache[key]) return;
-  const list = await loadBookWords(key);
-  curBook = key; wordData = list; synCache.clear(); buildSections();
+  const seq = ++bookSeq;
+  const entry = await loadBookWords(key);
+  if(seq !== bookSeq) return;   // 途中で別の切替が入ったら、古い結果は捨てる
+  curBook = key; wordData = entry.words; dataInfo = entry.info; synCache.clear(); buildSections();
   if(G.rules && G.rules.book === key){
     const max = BOOKS[key].starts.length;
     let secs = (G.rules.sections || []).filter(i => Number.isInteger(i) && i >= 0 && i < max);
     if(!secs.length) secs = BOOKS[key].starts.map((_, i) => i);
     G.rules.sections = secs;
   }
-  const st = $('appSubtitle'); if(st) st.textContent = BOOKS[key].label + list.length + '語 ・ 2人でオンライン対戦';
+  const st = $('appSubtitle'); if(st) st.textContent = BOOKS[key].label + entry.words.length + '語 ・ 2人でオンライン対戦';
   if(typeof UI !== 'undefined' && UI.renderDataStatus) UI.renderDataStatus();
+  if(G.phase === 'lobby' && typeof UI !== 'undefined' && UI.onLobbyChanged) UI.onLobbyChanged();
 }
 
 /* ================= セクション ================= */
@@ -3167,6 +3171,9 @@ const Dev = {
 
 /* ---------------- 更新履歴・遊び方 ---------------- */
 const CHANGELOG = [
+  {v:'1.3.1', d:'2026-11-18', items:[
+    '単語帳の切り替え直後に、出題範囲や語数の表示が前の単語帳のままになったり、切り替えが反映されなかったりする不具合を修正。読み込み中は「読み込んでいます」と表示されます。'
+  ]},
   {v:'1.3', d:'2026-11-18', items:[
     '単語帳に「ターゲット1900」(6訂版・1900語)を追加。ロビーのルール設定で「鉄壁」と切り替えられます。',
     'ターゲット1900の出題範囲は100語ごとの19セクション(Part 1 基本単語 / Part 2 重要単語 / Part 3 難単語)から選べます。Part 3は★難単語として高ポイントです。',
@@ -3394,7 +3401,7 @@ const Game = {
     if(!m || !m.rules || !Array.isArray(m.players)) return;
     G.rules = m.rules; G.players = m.players.map(p => ({name:p.name, flag:p.flag, castle:p.castle, color:p.color, online:true}));
     G.phase = 'game'; G.S = null;
-    try{ await setBook(G.rules.book || 'teppeki'); }catch(e){}
+    try{ await setBook(G.rules.book || 'teppeki'); }catch(e){ UI.toast('単語データの読み込みに失敗しました'); }
     Game.setup(!!m.re);
     UI.showWait(false);
     if(!m.re) Game.countdown(null);
@@ -3970,6 +3977,11 @@ const UI = {
     let n = 0; R.sections.forEach(i => { const s = SECTIONS[i]; if(s) n += s.endIdx - s.startIdx + 1; });
     const hasCpu = !!(G.players[1] && G.players[1].cpu);
     const sel = new Set(R.sections);
+    const bookLoading = (R.book || 'teppeki') !== curBook;
+    const gridHtml = bookLoading ? '<p class="hint" style="grid-column:1/-1">単語データを読み込んでいます…</p>' : SECTIONS.map(s => {
+        const num = s.index + 1, hard = num >= curBookDef().hardFrom, on = sel.has(s.index);
+        return `<div class="sec-tile${hard ? ' hard' : ''}${on ? ' checked' : ''}" data-act="sec" data-i="${s.index}" role="checkbox" aria-checked="${on}"><span class="sec-num">${num}</span><span class="sec-title">${esc(curBookDef().titles[s.index] || '')}</span>${hard ? '<span class="sec-hard">★難</span>' : ''}<span class="sec-range">${s.startId}-${s.endId}</span></div>`;
+      }).join('');
     let h = `<div class="panel"><h2 class="panel-title">自分の設定</h2>
       <div class="row-label">チームカラー</div>
       ${seg('color', [{v:'red', t:'赤', dis:op && op.color === 'red'}, {v:'blue', t:'青', dis:op && op.color === 'blue'}, {v:'none', t:'おまかせ'}], me.color || 'none')}
@@ -3995,12 +4007,9 @@ const UI = {
       <div class="row-label">マス目(陣地)の総数</div>
       ${seg('size', [{v:'s', t:'小 ' + mapCount('s')}, {v:'m', t:'中 ' + mapCount('m')}, {v:'l', t:'大 ' + mapCount('l')}], R.size)}
     </div>
-    <div class="panel"><div class="panel-title-row"><h2 class="panel-title">出題範囲<span id="selectedCount">${R.sections.length}セクション・${n}語</span></h2>
+    <div class="panel"><div class="panel-title-row"><h2 class="panel-title">出題範囲<span id="selectedCount">${bookLoading ? '読み込み中…' : R.sections.length + 'セクション・' + n + '語'}</span></h2>
       <div class="bulk-buttons"><button type="button" data-act="sel-set" data-v="all">全部</button><button type="button" data-act="sel-set" data-v="norm">通常のみ</button><button type="button" data-act="sel-set" data-v="hard">★難のみ</button></div></div>
-      <div class="section-grid" id="sectionGrid">${SECTIONS.map(s => {
-        const num = s.index + 1, hard = num >= curBookDef().hardFrom, on = sel.has(s.index);
-        return `<div class="sec-tile${hard ? ' hard' : ''}${on ? ' checked' : ''}" data-act="sec" data-i="${s.index}" role="checkbox" aria-checked="${on}"><span class="sec-num">${num}</span><span class="sec-title">${esc(curBookDef().titles[s.index] || '')}</span>${hard ? '<span class="sec-hard">★難</span>' : ''}<span class="sec-range">${s.startId}-${s.endId}</span></div>`;
-      }).join('')}</div></div>`;
+      <div class="section-grid" id="sectionGrid">${gridHtml}</div></div>`;
     pane.innerHTML = h; pane.scrollTop = st;
   },
   renderLobbyFoot(){
@@ -4324,7 +4333,7 @@ async function init(){
     return;
   }
   buildSections();
-  bookCache.teppeki = wordData;
+  bookCache.teppeki = {words:wordData, info:dataInfo};
   if(!THEMES.some(t => t.id === Settings.v.skin)) Settings.v.skin = 'teppeki';
   root.setAttribute('data-skin', Settings.v.skin); Draw.readPalette();
   UI.renderHome(); UI.renderDataStatus();
