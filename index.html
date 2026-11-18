@@ -437,6 +437,19 @@ button{font-family:var(--font-sans);}
 .bd.ant{background:var(--badge-ant-bg); border-color:var(--badge-ant-border); color:var(--badge-ant-text);}
 .exp-loc{margin-top:4px; font-size:.64rem; color:var(--text-sub);}
 .exp-loc .imp{color:var(--accent-2); font-weight:800; margin-right:6px;}
+.exp-pop{position:absolute; inset:0; z-index:45; display:flex; align-items:center; justify-content:center; padding:20px 16px; background:rgba(12,9,24,.48);}
+.exp-pop[hidden]{display:none !important;}
+.exp-pop-card{width:100%; max-width:520px; max-height:84%; overflow-y:auto; background:var(--bg-elevated); border:2px solid var(--hard-c); border-radius:18px; padding:16px; box-shadow:0 18px 50px rgba(0,0,0,.4); animation:expPopIn .16s ease-out;}
+@keyframes expPopIn{from{transform:scale(.92); opacity:0;}}
+.exp-pop-title{font-weight:900; color:var(--hard-c); font-size:1.02rem; letter-spacing:.06em; margin-bottom:6px;}
+.exp-pop-body{font-size:.95rem; line-height:1.55;}
+.exp-pop-body .head{display:flex; align-items:center; flex-wrap:wrap; gap:6px; font-size:.8rem; color:var(--text-sub); font-weight:700;}
+.exp-pop-body .chip{font-size:.8rem; padding:3px 11px;}
+.exp-pop-body .exp-en{font-size:1.9rem;}
+.exp-pop-body .exp-ja{font-size:1.12rem;}
+.exp-pop-body .exp-rel .lab{font-size:.78rem;}
+.exp-pop-body .bd{font-size:.88rem; padding:2px 10px;}
+.exp-pop-body .exp-loc{font-size:.78rem;}
 
 /* ---------- モーダル ---------- */
 .modal{position:fixed; inset:0; z-index:50; display:none; justify-content:center; background:rgba(0,0,0,.55);}
@@ -971,6 +984,7 @@ body.ot #screen-game::after{content:''; position:absolute; inset:0; pointer-even
       <div class="g-choices" id="choices"></div>
       <div class="g-exp" id="exp" data-state="prev"><div class="empty">直前の問題の解説がここに表示されます。</div></div>
     </div>
+    <div class="exp-pop" id="expPop" hidden><div class="exp-pop-card"><div class="exp-pop-title">✕ まちがい</div><div class="exp-pop-body" id="expPopBody"></div></div></div>
   </section>
 
   <!-- ===== 結果 ===== -->
@@ -2811,13 +2825,14 @@ const SimpleStats = {
 };
 
 /* ===================== 両画面共通の表示(QV) ===================== */
-const QZ = {n:0, phase:'idle', q:null, t0:0, limit:10, sent:false, locked:false, history:[], answered:0};
+const QZ = {n:0, phase:'idle', q:null, t0:0, limit:10, sent:false, locked:false, history:[], answered:0, myWrong:false};
 const QV = {
   reset(){
     QZ.n = 0; QZ.phase = 'idle'; QZ.q = null; QZ.sent = false; QZ.locked = false; QZ.history = []; QZ.answered = 0;
     SimpleStats.reset();
     const exp = $('exp'); exp.dataset.state = 'prev'; exp.innerHTML = '<div class="empty">直前の問題の解説がここに表示されます。</div>';
     $('choices').innerHTML = ''; $('qBox').innerHTML = ''; QV.resetBar();
+    QZ.myWrong = false; QV.hideExpPop();
   },
   on(ev){
     switch(ev.t){
@@ -2829,6 +2844,7 @@ const QV = {
         QV.resetBar(); QV.renderQuestion(QZ.q);
         $('exp').dataset.state = 'prev';
         $('oppState').textContent = '';
+        QZ.myWrong = false; QV.hideExpPop();
         break;
       }
       case 'open':
@@ -2841,7 +2857,7 @@ const QV = {
         if(ev.n !== QZ.n) return;
         SimpleStats.record(ev.p, false, ev.ms, QZ.limit);
         if(ev.p === G.me){
-          QZ.locked = true;
+          QZ.locked = true; QZ.myWrong = true;
           const b = $('choices').children[ev.i];
           if(b){ b.classList.add('wrong', 'picked'); b.disabled = true; }
           document.querySelectorAll('#choices .g-choice:not(.wrong)').forEach(x => x.classList.add('locked'));
@@ -2863,6 +2879,7 @@ const QV = {
         QZ.history.unshift(entry); if(QZ.history.length > CONFIG.HISTORY_MAX) QZ.history.pop();
         QZ.answered++;
         const exp = $('exp'); exp.dataset.state = 'cur'; exp.innerHTML = expHtml(entry, true); exp.scrollTop = 0;
+        if(QZ.myWrong) QV.showExpPop(entry);
         if(result === 'me'){ HUD.pop(ev.g); Snd.play('correct'); vib([25]); }
         else if(result === 'opp'){ Snd.play('tick'); }
         $('oppState').textContent = '';
@@ -2912,7 +2929,9 @@ const QV = {
     const f = $('timeFill'), frac = clamp(1 - (performance.now() - QZ.t0) / (QZ.limit * 1000), 0, 1);
     f.style.transition = 'none'; f.style.transform = 'scaleX(' + frac + ')';
   },
-  resetBar(){ clearTimeout(QV._warn); const f = $('timeFill'); $('timeBar').classList.remove('warn'); f.style.transition = 'none'; f.style.transform = 'scaleX(0)'; }
+  resetBar(){ clearTimeout(QV._warn); const f = $('timeFill'); $('timeBar').classList.remove('warn'); f.style.transition = 'none'; f.style.transform = 'scaleX(0)'; },
+  showExpPop(entry){ const p = $('expPop'); if(!p) return; $('expPopBody').innerHTML = expHtml(entry, false); p.hidden = false; },
+  hideExpPop(){ const p = $('expPop'); if(p) p.hidden = true; }
 };
 
 /* 解説(類義語=/反対語↔/★/#番号とセクション名) */
