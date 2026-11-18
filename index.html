@@ -681,6 +681,7 @@ body.simple-mode #simpleStats{
   padding:calc(9px + var(--safe-top)) 10px 0;
 }
 .simple-stats-head{display:flex; align-items:center; justify-content:space-between; gap:8px; min-height:24px;}
+.simple-time{margin-left:auto;}
 .simple-stats-title{font-size:.72rem; font-weight:900; letter-spacing:.12em; color:var(--text-sub);}
 .simple-stats-note{font-size:.56rem; color:var(--text-sub); margin-left:7px; letter-spacing:0; font-weight:600;}
 .simple-stats-grid{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:8px;}
@@ -940,6 +941,7 @@ body.ot #screen-game::after{content:''; position:absolute; inset:0; pointer-even
     <div class="simple-stats" id="simpleStats" aria-live="polite">
       <div class="simple-stats-head">
         <div><span class="simple-stats-title">BATTLE INDEX</span><span class="simple-stats-note">正答率 × 解答速度</span></div>
+        <span class="hud-time simple-time" id="simpleTime"><b id="simpleClock">--:--</b><small id="simplePhase"></small></span>
         <button type="button" class="pill-btn sm" data-act="back">退出</button>
       </div>
       <div class="simple-stats-grid">
@@ -1526,7 +1528,7 @@ const Sim = (function(){
     const map = makeMap(opts.size || 'm');
     const rng = opts.rng || Math.random;
     const S = {
-      map, rng, t:0, matchSec:(opts.matchSec || 300), phase:'main', winner:-2, reason:'',
+      map, rng, t:0, matchSec:(opts.matchSec || 300), phase:'main', winner:-2, reason:'', simpleJudge:!!opts.simpleJudge,
       own:new Int8Array(map.tiles.length).fill(-1),
       def:new Float32Array(map.tiles.length),
       ratio:new Float32Array(map.tiles.length),
@@ -1595,7 +1597,7 @@ const Sim = (function(){
     S.own[i] = -1; S.def[i] = 0; S.ratio[i] = 0;
     if(prev >= 0) S.stat[prev].lost++;
     ev(S, 'lost', i, prev, attacker);
-    if(S.map.tiles[i].hq >= 0 && S.winner === -2){ S.winner = S.map.tiles[i].hq === 0 ? 1 : 0; S.reason = 'hq'; }
+    if(!S.simpleJudge && S.map.tiles[i].hq >= 0 && S.winner === -2){ S.winner = S.map.tiles[i].hq === 0 ? 1 : 0; S.reason = 'hq'; }
   }
   function takeTile(S, i, p, defv, ratio){
     const prev = S.own[i];
@@ -3291,7 +3293,7 @@ const Game = {
     else if(!P[0].color) P[0].color = P[1].color === 'red' ? 'blue' : 'red';
     else if(!P[1].color) P[1].color = P[0].color === 'red' ? 'blue' : 'red';
     const R = G.rules;
-    G.S = Sim.create({size:R.size, matchSec:R.matchMin * 60});
+    G.S = Sim.create({size:R.size, matchSec:R.matchMin * 60, simpleJudge:Settings.v.simple ? 1 : 0});
     G.phase = 'game'; G.result = null;
     Net.sendGuest({t:'start', rules:R, players:Game.playersInfo(), re:0});
     Game.setup(false);
@@ -3376,7 +3378,19 @@ const Game = {
     if(GM.finished) return;
     const S = G.S; GM.finished = true; GM.running = false;
     qeStop(); CPU.stop();
-    const res = {w:S.winner, rs:S.reason, pts:[Math.round(S.pts[0]), Math.round(S.pts[1])], tiles:[Sim.tileCount(S, 0), Sim.tileCount(S, 1)],
+    let rate = null;
+    if(Settings.v.simple && S.reason !== 'forfeit'){
+      const A = SimpleStats.players[0], B = SimpleStats.players[1];
+      const r0 = A ? A.rating : 30, r1 = B ? B.rating : 30;
+      rate = [Math.round(r0 * 10) / 10, Math.round(r1 * 10) / 10];
+      const acc = s => (s && s.attempts) ? s.correct / s.attempts : 0;
+      const avg = s => (s && s.attempts) ? s.totalMs / s.attempts : Infinity;
+      if(Math.abs(r0 - r1) > 0.049){ S.winner = r0 > r1 ? 0 : 1; S.reason = 'rating'; }
+      else if(acc(A) !== acc(B)){ S.winner = acc(A) > acc(B) ? 0 : 1; S.reason = 'rating'; }
+      else if(avg(A) !== avg(B)){ S.winner = avg(A) < avg(B) ? 0 : 1; S.reason = 'rating'; }
+      else { S.winner = -1; S.reason = 'draw'; }
+    }
+    const res = {w:S.winner, rs:S.reason, rate:rate, pts:[Math.round(S.pts[0]), Math.round(S.pts[1])], tiles:[Sim.tileCount(S, 0), Sim.tileCount(S, 1)],
                  score:[Sim.scoreOf(S, 0), Sim.scoreOf(S, 1)], qs:QE.stat.map(x => Object.assign({}, x)), st:S.stat.map(x => Object.assign({}, x)), n:QE.n, t:Math.round(S.t)};
     G.result = res;
     Game.sendSnap();
@@ -3533,6 +3547,8 @@ const Game = {
       $('hudTime').classList.toggle('ot', c.ph === 'ot'); $('hudPhase').textContent = c.ph === 'ot' ? '延長戦' : '';
       const left = Number(c.txt.split(':')[0]) * 60 + Number(c.txt.split(':')[1]);
       $('hudTime').classList.toggle('low', c.ph !== 'ot' && left <= 10 && left > 0);
+      const sT = $('simpleTime');
+      if(sT){ $('simpleClock').textContent = c.txt; $('simplePhase').textContent = c.ph === 'ot' ? '延長戦' : ''; sT.classList.toggle('ot', c.ph === 'ot'); sT.classList.toggle('low', c.ph !== 'ot' && left <= 10 && left > 0); }
     }
     const pl = Game.pl(); if(!pl) return;
     const me = pl[0], op = pl[1];
@@ -3650,7 +3666,7 @@ const Prof = {
 const tourDone = k => { try{ return !!(JSON.parse(localStorage.getItem(LS_TOUR) || '{}'))[k]; }catch(e){ return false; } };
 const setTourDone = k => { try{ const o = JSON.parse(localStorage.getItem(LS_TOUR) || '{}'); o[k] = 1; localStorage.setItem(LS_TOUR, JSON.stringify(o)); }catch(e){} };
 
-const REASON_TEXT = {hq:'本陣の防御力が0になりました', tiles:'時間切れ:陣地の点数で判定(要所は3倍)', def:'陣地の点数が同点:防御力の合計で判定', draw:'完全に同点でした', forfeit:'相手が退出しました'};
+const REASON_TEXT = {hq:'本陣の防御力が0になりました', tiles:'時間切れ:陣地の点数で判定(要所は3倍)', def:'陣地の点数が同点:防御力の合計で判定', draw:'完全に同点でした', forfeit:'相手が退出しました', rating:'偏差値で判定(同点時は正答率・平均解答時間)'};
 
 const UI = {
   _pushed:false, _ignorePop:false, confirmCb:null, tplState:{}, tplGen:0, tab:'rules',
@@ -3937,6 +3953,7 @@ const UI = {
     $('hudPts').textContent = '0'; $('hudPtsOpp').textContent = '0';
     $('hudCombo').innerHTML = '<span class="cw">連続 </span>0'; $('hudCombo').classList.add('zero'); $('hudComboOpp').innerHTML = '<span class="cw">連続 </span>0'; $('hudComboOpp').classList.add('zero');
     $('hudClock').textContent = G.rules.matchMin + ':00'; $('hudPhase').textContent = ''; $('hudTime').classList.remove('ot', 'low');
+    const sC = $('simpleClock'); if(sC){ sC.textContent = G.rules.matchMin + ':00'; $('simplePhase').textContent = ''; $('simpleTime').classList.remove('ot', 'low'); }
     $('pinBar').innerHTML = PINS.map((p, i) => `<button type="button" class="pin-btn" data-act="pin" data-i="${i}" aria-label="ピンズ ${p}">${p}</button>`).join('');
     $('pinLayer').innerHTML = '';
     Game.buildShop();
@@ -3969,6 +3986,7 @@ const UI = {
     const row = (label, a, b) => `<div class="r"><span>${a}</span><em>${label}</em><span>${b}</span></div>`;
     const q = res.qs || [{}, {}], st = res.st || [{}, {}];
     $('resTable').innerHTML = `<div class="r head"><span>${nm(me)}</span><em></em><span>${nm(op)}</span></div>` +
+      (res.rate ? row('偏差値', res.rate[me].toFixed(1), res.rate[op].toFixed(1)) : '') +
       row('陣地の点数', res.score[me], res.score[op]) + row('保有マス', res.tiles[me], res.tiles[op]) + row('正解数', q[me].won, q[op].won) +
       row('ミス', q[me].ng, q[op].ng) + row('最大連続', q[me].maxCombo, q[op].maxCombo) + row('武器の購入', st[me].bought, st[op].bought) +
       row('出撃', st[me].launched, st[op].launched) + row('占領したマス', st[me].captured, st[op].captured) + row('奪われたマス', st[me].lost, st[op].lost) +
@@ -3998,7 +4016,7 @@ const UI = {
       </div>
       <div class="panel"><h2 class="panel-title">ゲーム画面</h2>
         <div class="stepper-row"><span class="stepper-label">簡易モード</span><div class="seg inline"><button type="button" class="${v.simple ? 'active' : ''}" data-act="set-simple" data-v="1">ON</button><button type="button" class="${v.simple ? '' : 'active'}" data-act="set-simple" data-v="0">OFF</button></div></div>
-        <p class="hint">ONにすると戦場・ショップなどを隠し、単語と大きな解答ボタン、両者のバトル偏差値・正答率・平均解答時間を表示します。</p></div>
+        <p class="hint">ONにすると戦場・ショップなどを隠し、単語と大きな解答ボタン、両者のバトル偏差値・正答率・平均解答時間を表示します。簡易モードでは勝敗は偏差値で決まります(本陣を落としても試合は最後まで続きます)。</p></div>
       <div class="panel"><h2 class="panel-title">機種(表示)<small>いま: ${esc((DEVS.find(d => d.id === Dev.eff()) || {}).label || '')}</small></h2>
         <div class="seg dev">${DEVS.map(d => `<button type="button" class="${v.dev === d.id ? 'active' : ''}" data-act="dev" data-id="${d.id}">${esc(d.label)}</button>`).join('')}</div>
         <p class="hint">ボタンや文字が重なって見えるときは、お使いの画面に近いものを選んでください。</p></div>`;
