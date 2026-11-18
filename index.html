@@ -1097,7 +1097,7 @@ body.ot #screen-game::after{content:''; position:absolute; inset:0; pointer-even
 
 /* ================= CONFIG(得点・戦闘の数値は Sim.BAL に集約) ================= */
 const CONFIG = {
-  VERSION: '1.4',
+  VERSION: '1.5',
   /* 単語データ: GitHub Gist 2つ(前半 / 後半)。順に結合して使う */
   DATA_URLS: [
     'https://gist.githubusercontent.com/taronaogalaxy002-gif/65144621efb78b5625e0075967f78c1d/raw',
@@ -1153,12 +1153,18 @@ const TARGET1200_SECTION_TITLES = [
   '単語・熟語','単語・熟語','単語・熟語','単語・熟語','単語・熟語','単語・熟語','単語・熟語','単語・熟語','単語・熟語',
   '単語・熟語','単語・熟語','単語・熟語','単語・熟語','単語・熟語','単語・熟語','単語・熟語','単語・熟語'
 ];
+const JUKUGO_SECTION_STARTS = [1,181,421,661,831];
+const JUKUGO_SECTION_TITLES = [
+  '絶対覚えておきたい','グルーピングで覚える','形で覚える','文法・構文で覚える','ここで差がつく難熟語'
+];
 const BOOKS = {
   teppeki:{label:'鉄壁', short:'鉄壁', expected:2176, starts:SECTION_STARTS, titles:SECTION_TITLES, hardFrom:47, urls:null},
   target:{label:'ターゲット1900', short:'ターゲット', expected:1900, starts:TARGET_SECTION_STARTS, titles:TARGET_SECTION_TITLES, hardFrom:16,
           urls:['https://raw.githubusercontent.com/taronaogalaxy002-gif/tango-data/main/target_part1.json', 'https://raw.githubusercontent.com/taronaogalaxy002-gif/tango-data/main/target_part2.json']},
   target1200:{label:'ターゲット1200', short:'ターゲット1200', expected:1700, starts:TARGET1200_SECTION_STARTS, titles:TARGET1200_SECTION_TITLES, hardFrom:99,
-          urls:['https://raw.githubusercontent.com/taronaogalaxy002-gif/tango-data/main/target1200_part1.json', 'https://raw.githubusercontent.com/taronaogalaxy002-gif/tango-data/main/target1200_part2.json']}
+          urls:['https://raw.githubusercontent.com/taronaogalaxy002-gif/tango-data/main/target1200_part1.json', 'https://raw.githubusercontent.com/taronaogalaxy002-gif/tango-data/main/target1200_part2.json']},
+  target1000:{label:'熟語ターゲット1000', short:'ターゲット1000', expected:1000, starts:JUKUGO_SECTION_STARTS, titles:JUKUGO_SECTION_TITLES, hardFrom:5,
+          urls:['https://raw.githubusercontent.com/taronaogalaxy002-gif/tango-data/main/jukugo1000_part1.json', 'https://raw.githubusercontent.com/taronaogalaxy002-gif/tango-data/main/jukugo1000_part2.json']}
 };
 let curBook = 'teppeki';
 const bookCache = {};
@@ -2302,7 +2308,7 @@ function validRule(key, v){
     case 'size': return v === 's' || v === 'm' || v === 'l';
     case 'cpuSpeed': return typeof v === 'number' && v >= CONFIG.CPU.speedMin && v <= CONFIG.CPU.speedMax && Math.abs(v * 2 - Math.round(v * 2)) < 1e-9;
     case 'cpuLevel': return v === 'n' || v === 'a';
-    case 'book': return v === 'teppeki' || v === 'target' || v === 'target1200';
+    case 'book': return v === 'teppeki' || v === 'target' || v === 'target1200' || v === 'target1000';
     case 'sections': return Array.isArray(v) && v.length > 0 && v.every(i => Number.isInteger(i) && i >= 0 && i < 50);
   }
   return false;
@@ -3178,6 +3184,9 @@ const Dev = {
 
 /* ---------------- 更新履歴・遊び方 ---------------- */
 const CHANGELOG = [
+  {v:'1.5', d:'2026-11-19', items:[
+    '単語帳に「熟語ターゲット1000」(5訂版)を追加。1000熟語を、本の章立て(5セクション)どおりに選んで出題できます。'
+  ]},
   {v:'1.4', d:'2026-11-19', items:[
     '単語帳に「ターゲット1200」(改訂版)を追加。単語・熟語あわせて1700語を、100語ごとの17セクションから出題できます。'
   ]},
@@ -4007,7 +4016,7 @@ const UI = {
     </div>` : ''}
     <div class="panel"><h2 class="panel-title">ルール<small>どちらも変更できます</small></h2>
       <div class="row-label">単語帳</div>
-      ${seg('book', [{v:'teppeki', t:'鉄壁'}, {v:'target', t:'ターゲット1900'}, {v:'target1200', t:'ターゲット1200'}], R.book || 'teppeki')}
+      ${seg('book', [{v:'teppeki', t:'鉄壁'}, {v:'target', t:'ターゲット1900'}, {v:'target1200', t:'ターゲット1200'}, {v:'target1000', t:'ターゲット1000'}], R.book || 'teppeki')}
       <div class="row-label">出題方向</div>
       ${seg('dir', [{v:'ja-en', t:'和英'}, {v:'en-ja', t:'英和'}, {v:'mix', t:'ミックス'}], R.direction)}
       ${stepper('reveal', '選択肢が出るまでの待ち', 0, 3000, 500)}
