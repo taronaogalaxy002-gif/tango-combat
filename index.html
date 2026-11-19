@@ -409,6 +409,7 @@ button{font-family:var(--font-sans);}
 .tips-body ul{margin:0 0 6px; padding-left:1.2em;}
 .tips-body li{margin:3px 0; line-height:1.55;}
 .tips-body p{line-height:1.55; color:var(--text-sub); font-size:.8rem;}
+.xlink-btn{display:block; margin:10px 0; padding:12px 16px; text-align:center; text-decoration:none; font-weight:800; font-size:.92rem; border:1.5px dashed var(--border); border-radius:12px; background:var(--bg-elevated); color:var(--text-main);}
 .g-q.qen .g-q-text{font-family:var(--font-heading); font-weight:var(--heading-weight);}
 .g-q.qen.sz-l .g-q-text{font-size:1.9rem;} .g-q.qen.sz-m .g-q-text{font-size:1.5rem;} .g-q.qen.sz-s .g-q-text{font-size:1.15rem;}
 .g-q.qja.sz-l .g-q-text{font-size:1.3rem;} .g-q.qja.sz-m .g-q-text{font-size:1.05rem;} .g-q.qja.sz-s .g-q-text{font-size:.9rem;} .g-q.qja.sz-xs .g-q-text{font-size:.8rem;}
@@ -872,6 +873,8 @@ body.ot #screen-game::after{content:''; position:absolute; inset:0; pointer-even
       <p class="subtitle" id="appSubtitle">鉄壁2176語 ・ 2人でオンライン対戦</p>
     </header>
 
+    <a class="xlink-btn" href="https://taronaogalaxy002-gif.github.io/teppei-tango-app-fetch/" target="_blank" rel="noopener">📚 単語帳（フラッシュカード）で覚える</a>
+
     <div class="panel" id="pnProfile">
       <h2 class="panel-title">プレイヤー</h2>
       <div class="prof-row">
@@ -1123,7 +1126,7 @@ body.ot #screen-game::after{content:''; position:absolute; inset:0; pointer-even
 
 /* ================= CONFIG(得点・戦闘の数値は Sim.BAL に集約) ================= */
 const CONFIG = {
-  VERSION: '1.8',
+  VERSION: '1.9',
   /* 単語データ: GitHub Gist 2つ(前半 / 後半)。順に結合して使う */
   DATA_URLS: [
     'https://gist.githubusercontent.com/taronaogalaxy002-gif/65144621efb78b5625e0075967f78c1d/raw',
@@ -3288,6 +3291,9 @@ const TIPS_HTML = `
 
 /* ---------------- 更新履歴・遊び方 ---------------- */
 const CHANGELOG = [
+  {v:'1.9', d:'2026-11-19', items:[
+    'ホームに単語帳アプリ（フラッシュカード）へのリンクを追加。行き来できるようになりました。'
+  ]},
   {v:'1.8', d:'2026-11-19', items:[
     '新モード「鬼畜」を追加。ルール設定の「モード」で鬼畜を選ぶと、選択肢が1つずつカードのように表示され、「次へ」で進めますが前に戻ることはできません。',
     'ホームに「覚え方のコツ」ボタンを追加。レベル別の必要な単語数と、科学的に効くとされる覚え方のコツが読めます。'
