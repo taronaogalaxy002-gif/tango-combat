@@ -394,6 +394,21 @@ button{font-family:var(--font-sans);}
 .g-q .q-no{position:absolute; right:10px; bottom:5px; font-size:.6rem; color:var(--text-sub); font-variant-numeric:tabular-nums;}
 .g-q-text{font-weight:700; line-height:1.4; color:var(--text-main); overflow-wrap:anywhere; max-height:5.6em; overflow:hidden;}
 .q-replay{margin-left:12px; font-size:.85rem; font-weight:700; padding:8px 14px; border-radius:999px; border:1px solid var(--border); background:var(--bg-elevated); color:var(--text-main); cursor:pointer; vertical-align:middle;}
+.g-choices.oni{grid-template-columns:1fr; grid-auto-rows:auto;}
+.g-choices.oni .g-choice{display:none;}
+.g-choices.oni .g-choice.cur{display:flex; min-height:var(--rowH);}
+.g-choices.oni.resolved{grid-template-columns:1fr 1fr; grid-auto-rows:var(--rowH);}
+.g-choices.oni.resolved .g-choice{display:flex; min-height:0;}
+.g-choices.oni.resolved .oni-bar{display:none;}
+.oni-bar{display:flex; align-items:center; justify-content:space-between; gap:8px; padding:2px 2px 0;}
+.oni-count{font-size:.75rem; font-weight:800; color:var(--text-sub);}
+.oni-next{font-size:.85rem; font-weight:800; padding:9px 18px; border-radius:999px; border:1px solid var(--border); background:var(--bg-elevated); color:var(--text-main); cursor:pointer;}
+.oni-next:disabled{opacity:.35; cursor:default;}
+.tips-body h4{margin:14px 0 6px; font-size:.92rem;}
+.tips-body h4:first-child{margin-top:0;}
+.tips-body ul{margin:0 0 6px; padding-left:1.2em;}
+.tips-body li{margin:3px 0; line-height:1.55;}
+.tips-body p{line-height:1.55; color:var(--text-sub); font-size:.8rem;}
 .g-q.qen .g-q-text{font-family:var(--font-heading); font-weight:var(--heading-weight);}
 .g-q.qen.sz-l .g-q-text{font-size:1.9rem;} .g-q.qen.sz-m .g-q-text{font-size:1.5rem;} .g-q.qen.sz-s .g-q-text{font-size:1.15rem;}
 .g-q.qja.sz-l .g-q-text{font-size:1.3rem;} .g-q.qja.sz-m .g-q-text{font-size:1.05rem;} .g-q.qja.sz-s .g-q-text{font-size:.9rem;} .g-q.qja.sz-xs .g-q-text{font-size:.8rem;}
@@ -848,6 +863,7 @@ body.ot #screen-game::after{content:''; position:absolute; inset:0; pointer-even
     <div class="home-top">
       <button type="button" class="pill-btn" data-act="open-howto" id="btnHowto">遊び方</button>
       <button type="button" class="pill-btn" data-act="open-log" id="btnLog">更新履歴</button>
+      <button type="button" class="pill-btn" data-act="open-tips" id="btnTips">覚え方のコツ</button>
       <button type="button" class="pill-btn" data-act="open-settings" id="btnSettings">設定</button>
     </div>
     <header class="app-header">
@@ -1027,6 +1043,15 @@ body.ot #screen-game::after{content:''; position:absolute; inset:0; pointer-even
     </div>
   </div>
 
+  <!-- ===== 覚え方のコツ ===== -->
+  <div class="modal sheet-m" id="mTips">
+    <div class="sheet">
+      <h3>単語の覚え方のコツ</h3>
+      <div class="set-body tips-body" id="tipsBody"></div>
+      <button type="button" class="close" data-act="tips-close">閉じる</button>
+    </div>
+  </div>
+
   <!-- ===== 遊び方 ===== -->
   <div class="modal sheet-m" id="mHow">
     <div class="sheet">
@@ -1098,7 +1123,7 @@ body.ot #screen-game::after{content:''; position:absolute; inset:0; pointer-even
 
 /* ================= CONFIG(得点・戦闘の数値は Sim.BAL に集約) ================= */
 const CONFIG = {
-  VERSION: '1.7',
+  VERSION: '1.8',
   /* 単語データ: GitHub Gist 2つ(前半 / 後半)。順に結合して使う */
   DATA_URLS: [
     'https://gist.githubusercontent.com/taronaogalaxy002-gif/65144621efb78b5625e0075967f78c1d/raw',
@@ -2280,17 +2305,18 @@ const G = {
   result:null, paused:false, hostName:''
 };
 function defaultRules(){
-  const base = {direction:'ja-en', listening:false, reveal:CONFIG.QUIZ.revealDelayMs, limit:CONFIG.QUIZ.timeLimitSec, interval:CONFIG.QUIZ.intervalMs,
+  const base = {direction:'ja-en', oni:false, listening:false, reveal:CONFIG.QUIZ.revealDelayMs, limit:CONFIG.QUIZ.timeLimitSec, interval:CONFIG.QUIZ.intervalMs,
           matchMin:CONFIG.MATCH_MIN.def, size:'m', cpuSpeed:CONFIG.CPU.speedDef, cpuLevel:'n', book:'teppeki', sections:Array.from({length:50}, (_, i) => i)};
   return Object.assign(base, typeof loadSavedRules === 'function' ? loadSavedRules() : {});
 }
 const _mapCnt = {};
 function mapCount(sz){ return _mapCnt[sz] || (_mapCnt[sz] = Sim.makeMap(sz).tiles.length); }
 const DIR_LABELS = {'ja-en':'和英(日本語→英語)', 'en-ja':'英和(英語→日本語)', 'mix':'ミックス(毎問ランダム)'};
-const RULE_LABELS = {book:'単語帳', direction:'出題方向', listening:'リスニング', reveal:'選択肢が出るまでの待ち', limit:'1問の制限時間', interval:'次の問題までの間隔', matchMin:'試合時間', size:'マス目(陣地)の総数', cpuSpeed:'CPUの回答速度', cpuLevel:'CPUの戦略', sections:'出題範囲'};
+const RULE_LABELS = {book:'単語帳', direction:'出題方向', oni:'モード', listening:'リスニング', reveal:'選択肢が出るまでの待ち', limit:'1問の制限時間', interval:'次の問題までの間隔', matchMin:'試合時間', size:'マス目(陣地)の総数', cpuSpeed:'CPUの回答速度', cpuLevel:'CPUの戦略', sections:'出題範囲'};
 function ruleText(key, v){
   if(key === 'book') return BOOKS[v] ? BOOKS[v].label : String(v);
   if(key === 'direction') return DIR_LABELS[v] || String(v);
+  if(key === 'oni') return v ? '鬼畜' : '普通';
   if(key === 'listening') return v ? 'オン' : 'オフ';
   if(key === 'reveal' || key === 'interval') return (v / 1000).toFixed(1) + '秒';
   if(key === 'limit') return v + '秒';
@@ -2304,6 +2330,7 @@ function ruleText(key, v){
 function validRule(key, v){
   switch(key){
     case 'direction': return v === 'ja-en' || v === 'en-ja' || v === 'mix';
+    case 'oni': return typeof v === 'boolean';
     case 'listening': return typeof v === 'boolean';
     case 'reveal': return Number.isInteger(v) && v >= 0 && v <= 3000;
     case 'limit': return Number.isInteger(v) && v >= 3 && v <= 30;
@@ -2906,14 +2933,14 @@ const SimpleStats = {
 };
 
 /* ===================== 両画面共通の表示(QV) ===================== */
-const QZ = {n:0, phase:'idle', q:null, t0:0, limit:10, sent:false, locked:false, history:[], answered:0, myWrong:false, listening:false};
+const QZ = {n:0, phase:'idle', q:null, t0:0, limit:10, sent:false, locked:false, history:[], answered:0, myWrong:false, listening:false, oni:false, view:0};
 const QV = {
   reset(){
     QZ.n = 0; QZ.phase = 'idle'; QZ.q = null; QZ.sent = false; QZ.locked = false; QZ.history = []; QZ.answered = 0;
     SimpleStats.reset();
     const exp = $('exp'); exp.dataset.state = 'prev'; exp.innerHTML = '<div class="empty">直前の問題の解説がここに表示されます。</div>';
     $('choices').innerHTML = ''; $('qBox').innerHTML = ''; QV.resetBar();
-    QZ.myWrong = false; QZ.listening = false; QV.hideExpPop();
+    QZ.myWrong = false; QZ.listening = false; QZ.oni = false; QZ.view = 0; QV.hideExpPop();
   },
   on(ev){
     switch(ev.t){
@@ -2922,6 +2949,7 @@ const QV = {
         const aField = dir === 'ja-en' ? 'en' : 'ja', qField = dir === 'ja-en' ? 'ja' : 'en';
         QZ.q = {word, dir, aField, qField, hard:!!ev.hard, choices:ev.ch.map(id => id < 0 ? {none:true, w:null} : {none:false, w:wordData[id - 1]}), ci:-1};
         QZ.listening = !!(G.rules && G.rules.listening && dir === 'en-ja');
+        QZ.oni = !!(G.rules && G.rules.oni); QZ.view = 0;
         QZ.n = ev.n; QZ.phase = 'veil'; QZ.sent = false; QZ.locked = false; QZ.limit = ev.lim;
         QV.resetBar(); QV.renderQuestion(QZ.q);
         $('exp').dataset.state = 'prev';
@@ -2935,6 +2963,7 @@ const QV = {
         document.querySelectorAll('#choices .g-choice').forEach(b => b.classList.remove('veil'));
         QV.startBar(ev.lim);
         if(QZ.listening && QZ.q) speakEn(QZ.q.word.en);
+        if(QZ.oni) QV.oniShow(QZ.view);
         break;
       case 'lock':
         if(ev.n !== QZ.n) return;
@@ -2999,10 +3028,22 @@ const QV = {
       : `<span class="g-q-text">${esc(text)}</span><span class="q-no">${QZ.n}問目</span>`);
     QV.fitQ();
     const cb = $('choices'); cb.classList.remove('resolved');
+    cb.classList.toggle('oni', !!QZ.oni);
     cb.innerHTML = q.choices.map((c, i) => c.none
-      ? `<button type="button" class="g-choice none veil" data-act="choose" data-fast="1" data-i="${i}"><span class="n">×</span><span class="t"><span class="m">この中にない</span></span></button>`
-      : `<button type="button" class="g-choice ${q.aField} veil" data-act="choose" data-fast="1" data-i="${i}"><span class="n">${i + 1}</span><span class="t"><span class="m">${esc(c.w[q.aField])}</span><span class="s">${QZ.listening ? '' : esc(c.w[q.qField])}</span></span></button>`
-    ).join('');
+      ? `<button type="button" class="g-choice none veil${QZ.oni && i === 0 ? ' cur' : ''}" data-act="choose" data-fast="1" data-i="${i}"><span class="n">×</span><span class="t"><span class="m">この中にない</span></span></button>`
+      : `<button type="button" class="g-choice ${q.aField} veil${QZ.oni && i === 0 ? ' cur' : ''}" data-act="choose" data-fast="1" data-i="${i}"><span class="n">${i + 1}</span><span class="t"><span class="m">${esc(c.w[q.aField])}</span><span class="s">${QZ.listening ? '' : esc(c.w[q.qField])}</span></span></button>`
+    ).join('') + (QZ.oni ? `<div class="oni-bar"><span class="oni-count" id="oniCount">1 / ${q.choices.length}</span><button type="button" class="oni-next" id="oniNext" data-act="oni-next" disabled>次へ ▶</button></div>` : '');
+  },
+  oniShow(i){
+    if(!QZ.q) return;
+    QZ.view = i;
+    document.querySelectorAll('#choices .g-choice').forEach((b, j) => b.classList.toggle('cur', j === i));
+    const c = $('oniCount'); if(c) c.textContent = (i + 1) + ' / ' + QZ.q.choices.length;
+    const nx = $('oniNext'); if(nx) nx.disabled = QZ.phase !== 'answer' || i >= QZ.q.choices.length - 1;
+  },
+  oniNext(){
+    if(QZ.phase !== 'answer' || !QZ.oni || !QZ.q) return;
+    if(QZ.view < QZ.q.choices.length - 1) QV.oniShow(QZ.view + 1);
   },
   startBar(sec){
     const f = $('timeFill'); $('timeBar').classList.remove('warn');
@@ -3201,8 +3242,56 @@ const Dev = {
   }
 };
 
+/* ---------------- 覚え方のコツ ---------------- */
+const TIPS_HTML = `
+<h4>レベル別・必要な単語数の目安</h4>
+<ul>
+<li>中学卒業（英検3級）：約1,300〜2,100語</li>
+<li>高校中級（英検準2級）：約2,600〜3,600語</li>
+<li>高校卒業・共通テスト（英検2級）：約4,000〜5,100語</li>
+<li>MARCH・中堅国公立：約5,000〜6,000語</li>
+<li>早慶・東大・京大など難関大：約6,000〜8,000語</li>
+</ul>
+<p>※ぜんぶ累計の目安。いきなり全部を目指さず、今の目標の「1段上」を狙うのが続けるコツ。</p>
+<h4>覚え方の原則</h4>
+<ul>
+<li><b>1語に時間をかけない</b>：1語1〜3秒で意味を確認する高速周回が基本。1日10語を完璧に、よりも1日100語を何度も。</li>
+<li><b>眺めるな、思い出せ</b>：意味を隠して思い出す練習（想起）がいちばん効く。合格ラインは「見て1秒以内に意味が言える」こと。</li>
+<li><b>間隔を空けて繰り返す</b>：復習は 直後 → 翌朝 → 3日後 → 1週間後 → 数週間後。忘れかけた頃に思い出すと定着する。</li>
+<li><b>仕分けする</b>：知っている語は飛ばして、知らない語だけを重点的に回す。</li>
+<li><b>音と一緒に</b>：発音を聞いて声に出す。耳・口・目を一緒に使うと残りやすいし、リスニングにも強くなる。</li>
+<li><b>例文で覚える</b>：1語1訳の丸暗記より、文の中での使われ方ごと覚える方が本番で使える。</li>
+<li><b>寝る前と翌朝</b>：寝る前に見て、朝もう一度。睡眠中に記憶が整理される。</li>
+<li><b>書くよりテスト</b>：ノートに何度も書くのは効率が悪い。テスト形式で回す方が速い。</li>
+</ul>
+<h4>レベル別の進め方</h4>
+<ul>
+<li><b>基礎固め（中学〜高1）</b>：まずターゲット1200を1冊仕上げる。新しい語は1日50〜100語ペースで。</li>
+<li><b>共通テストレベル</b>：累計4,000〜5,000語が目標。ターゲット1900 → 鉄壁の順に、基本語を「1秒で言える」まで。</li>
+<li><b>難関大レベル</b>：累計6,000〜8,000語。鉄壁を完璧にした上で、長文の中で出会った未知語を拾っていく。</li>
+<li><b>古文単語</b>：古文単語601（単語帳アプリ）は品詞ごとに分かれているので、意味を取り違えやすい形容詞・形容動詞から固めるのがおすすめ。</li>
+</ul>
+<h4>このアプリでの実践</h4>
+<ul>
+<li>単語帳アプリの「テスト」＝想起練習そのもの。まずテストで仕分けして、弱いセクションをカードで周回。</li>
+<li>単語バトル＝対戦しながら即答する練習。偏差値は「速く正確に思い出せたか」の指標。</li>
+<li>リスニングモード＝耳だけで意味を思い出す練習。</li>
+<li>鬼畜モード＝選択肢まで覚えていないと勝てない最終関門。本当に定着したかの確認に。</li>
+</ul>
+<h4>1週間の回し方の例（100語）</h4>
+<ul>
+<li>1日目：新しい100語を通す。言えない語に印。</li>
+<li>2〜5日目：同じ100語をテスト形式で周回。言える語を増やす。</li>
+<li>6日目：総仕上げテスト。9割「1秒で言える」を目指す。</li>
+<li>7日目：休み、または前週分の復習だけ。</li>
+</ul>`;
+
 /* ---------------- 更新履歴・遊び方 ---------------- */
 const CHANGELOG = [
+  {v:'1.8', d:'2026-11-19', items:[
+    '新モード「鬼畜」を追加。ルール設定の「モード」で鬼畜を選ぶと、選択肢が1つずつカードのように表示され、「次へ」で進めますが前に戻ることはできません。',
+    'ホームに「覚え方のコツ」ボタンを追加。レベル別の必要な単語数と、科学的に効くとされる覚え方のコツが読めます。'
+  ]},
   {v:'1.7', d:'2026-11-19', items:[
     '新モード「リスニング」を追加。ルール設定でオンにすると、英和の問題(ミックスのときは英和になった問題だけ)で問題文が表示されず、音声だけで答えます。「もう一度聞く」ボタンで聞き直しもできます。'
   ]},
@@ -4050,6 +4139,9 @@ const UI = {
       ${seg('book', [{v:'teppeki', t:'鉄壁'}, {v:'target', t:'ターゲット1900'}, {v:'target1200', t:'ターゲット1200'}, {v:'target1000', t:'ターゲット1000'}], R.book || 'teppeki')}
       <div class="row-label">出題方向</div>
       ${seg('dir', [{v:'ja-en', t:'和英'}, {v:'en-ja', t:'英和'}, {v:'mix', t:'ミックス'}], R.direction)}
+      <div class="row-label">モード</div>
+      ${seg('oni', [{v:'off', t:'普通'}, {v:'on', t:'鬼畜'}], R.oni ? 'on' : 'off')}
+      <p class="hint">鬼畜：選択肢が1つずつカードのように表示されます。「次へ」で進めますが、前に戻ることはできません。</p>
       <div class="row-label">リスニング</div>
       ${seg('listen', [{v:'off', t:'オフ'}, {v:'on', t:'オン'}], R.listening ? 'on' : 'off')}
       <p class="hint">オンにすると、英和の問題(ミックスのときは英和になった問題だけ)で問題文が表示されず、音声だけで答えます。</p>
@@ -4176,6 +4268,9 @@ const UI = {
     $('logVer').textContent = 'v' + CONFIG.VERSION;
     $('logBody').innerHTML = CHANGELOG.map(c => `<div class="log-item"><div class="log-h"><b>v${esc(c.v)}</b><span>${esc(c.d)}</span></div><ul>${c.items.map(i => `<li>${esc(i)}</li>`).join('')}</ul></div>`).join('');
   },
+  renderTips(){
+    $('tipsBody').innerHTML = TIPS_HTML;
+  },
   renderHow(){
     $('howBody').innerHTML = HOWTO.map(h => `<div class="how-item"><b>${esc(h[0])}</b><p>${esc(h[1])}</p></div>`).join('');
   },
@@ -4252,6 +4347,8 @@ function handleAct(el){
     case 'tour-home': UI.closeModal('mHow'); setTimeout(() => { if(G.phase === 'home') Tour.run(Tour.homeSteps(), {key:'home'}); else if(G.phase === 'lobby') Tour.run(Tour.lobbySteps(), {key:'lobby'}); }, 150); break;
     case 'open-log': UI.renderLog(); UI.openModal('mLog'); break;
     case 'log-close': UI.closeModal('mLog'); break;
+    case 'open-tips': UI.renderTips(); UI.openModal('mTips'); break;
+    case 'tips-close': UI.closeModal('mTips'); break;
     case 'open-settings': UI.renderSettings(); UI.openModal('mSettings'); break;
     case 'settings-close': UI.closeModal('mSettings'); break;
     case 'skin': UI.setSkin(d.id); break;
@@ -4290,6 +4387,8 @@ function handleAct(el){
     case 'book': Net.changeRule('book', d.v); break;
     case 'dir': Net.changeRule('direction', d.v); break;
     case 'listen': Net.changeRule('listening', d.v === 'on'); break;
+    case 'oni': Net.changeRule('oni', d.v === 'on'); break;
+    case 'oni-next': QV.oniNext(); break;
     case 'replay': if(QZ.q) speakEn(QZ.q.word.en); break;
     case 'size': Net.changeRule('size', d.v); break;
     case 'step': {
