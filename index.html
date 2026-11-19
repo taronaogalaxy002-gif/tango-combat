@@ -1097,7 +1097,7 @@ body.ot #screen-game::after{content:''; position:absolute; inset:0; pointer-even
 
 /* ================= CONFIG(得点・戦闘の数値は Sim.BAL に集約) ================= */
 const CONFIG = {
-  VERSION: '1.5',
+  VERSION: '1.5.1',
   /* 単語データ: GitHub Gist 2つ(前半 / 後半)。順に結合して使う */
   DATA_URLS: [
     'https://gist.githubusercontent.com/taronaogalaxy002-gif/65144621efb78b5625e0075967f78c1d/raw',
@@ -1346,9 +1346,10 @@ let SECTIONS = [];
 let SEC_OF = [];   // id → 公式セクション番号(1始まり)
 function buildSections(){
   const total = wordData.length;
-  SECTIONS = curBookDef().starts.map((st, i) => {
+  const starts = curBookDef().starts;
+  SECTIONS = starts.map((st, i) => {
     const startIdx = st - 1;
-    const endIdx = (i+1 < SECTION_STARTS.length ? SECTION_STARTS[i+1] - 1 : total) - 1;
+    const endIdx = (i+1 < starts.length ? starts[i+1] - 1 : total) - 1;
     return {index:i, startIdx, endIdx, startId:wordData[startIdx].id, endId:wordData[endIdx].id};
   });
   SEC_OF = new Array(total + 1).fill(0);
@@ -3184,6 +3185,9 @@ const Dev = {
 
 /* ---------------- 更新履歴・遊び方 ---------------- */
 const CHANGELOG = [
+  {v:'1.5.1', d:'2026-11-19', items:[
+    '単語帳を切り替えたとき、セクションの範囲・語数の表示がずれ、出題範囲が狭くなって同じ問題が繰り返し出る不具合を修正しました。'
+  ]},
   {v:'1.5', d:'2026-11-19', items:[
     '単語帳に「熟語ターゲット1000」(5訂版)を追加。1000熟語を、本の章立て(5セクション)どおりに選んで出題できます。'
   ]},
