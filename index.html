@@ -393,6 +393,7 @@ button{font-family:var(--font-sans);}
 .g-q .ribbon{position:absolute; top:-2px; left:-2px; padding:3px 10px 3px 8px; font-size:.64rem; font-weight:800; letter-spacing:.04em; color:#fff; background:linear-gradient(135deg,var(--hard-a),var(--hard-c)); border-radius:var(--radius) 0 10px 0;}
 .g-q .q-no{position:absolute; right:10px; bottom:5px; font-size:.6rem; color:var(--text-sub); font-variant-numeric:tabular-nums;}
 .g-q-text{font-weight:700; line-height:1.4; color:var(--text-main); overflow-wrap:anywhere; max-height:5.6em; overflow:hidden;}
+.q-replay{margin-left:12px; font-size:.85rem; font-weight:700; padding:8px 14px; border-radius:999px; border:1px solid var(--border); background:var(--bg-elevated); color:var(--text-main); cursor:pointer; vertical-align:middle;}
 .g-q.qen .g-q-text{font-family:var(--font-heading); font-weight:var(--heading-weight);}
 .g-q.qen.sz-l .g-q-text{font-size:1.9rem;} .g-q.qen.sz-m .g-q-text{font-size:1.5rem;} .g-q.qen.sz-s .g-q-text{font-size:1.15rem;}
 .g-q.qja.sz-l .g-q-text{font-size:1.3rem;} .g-q.qja.sz-m .g-q-text{font-size:1.05rem;} .g-q.qja.sz-s .g-q-text{font-size:.9rem;} .g-q.qja.sz-xs .g-q-text{font-size:.8rem;}
@@ -1097,7 +1098,7 @@ body.ot #screen-game::after{content:''; position:absolute; inset:0; pointer-even
 
 /* ================= CONFIG(得点・戦闘の数値は Sim.BAL に集約) ================= */
 const CONFIG = {
-  VERSION: '1.6.1',
+  VERSION: '1.7',
   /* 単語データ: GitHub Gist 2つ(前半 / 後半)。順に結合して使う */
   DATA_URLS: [
     'https://gist.githubusercontent.com/taronaogalaxy002-gif/65144621efb78b5625e0075967f78c1d/raw',
@@ -2279,17 +2280,18 @@ const G = {
   result:null, paused:false, hostName:''
 };
 function defaultRules(){
-  const base = {direction:'ja-en', reveal:CONFIG.QUIZ.revealDelayMs, limit:CONFIG.QUIZ.timeLimitSec, interval:CONFIG.QUIZ.intervalMs,
+  const base = {direction:'ja-en', listening:false, reveal:CONFIG.QUIZ.revealDelayMs, limit:CONFIG.QUIZ.timeLimitSec, interval:CONFIG.QUIZ.intervalMs,
           matchMin:CONFIG.MATCH_MIN.def, size:'m', cpuSpeed:CONFIG.CPU.speedDef, cpuLevel:'n', book:'teppeki', sections:Array.from({length:50}, (_, i) => i)};
   return Object.assign(base, typeof loadSavedRules === 'function' ? loadSavedRules() : {});
 }
 const _mapCnt = {};
 function mapCount(sz){ return _mapCnt[sz] || (_mapCnt[sz] = Sim.makeMap(sz).tiles.length); }
 const DIR_LABELS = {'ja-en':'和英(日本語→英語)', 'en-ja':'英和(英語→日本語)', 'mix':'ミックス(毎問ランダム)'};
-const RULE_LABELS = {book:'単語帳', direction:'出題方向', reveal:'選択肢が出るまでの待ち', limit:'1問の制限時間', interval:'次の問題までの間隔', matchMin:'試合時間', size:'マス目(陣地)の総数', cpuSpeed:'CPUの回答速度', cpuLevel:'CPUの戦略', sections:'出題範囲'};
+const RULE_LABELS = {book:'単語帳', direction:'出題方向', listening:'リスニング', reveal:'選択肢が出るまでの待ち', limit:'1問の制限時間', interval:'次の問題までの間隔', matchMin:'試合時間', size:'マス目(陣地)の総数', cpuSpeed:'CPUの回答速度', cpuLevel:'CPUの戦略', sections:'出題範囲'};
 function ruleText(key, v){
   if(key === 'book') return BOOKS[v] ? BOOKS[v].label : String(v);
   if(key === 'direction') return DIR_LABELS[v] || String(v);
+  if(key === 'listening') return v ? 'オン' : 'オフ';
   if(key === 'reveal' || key === 'interval') return (v / 1000).toFixed(1) + '秒';
   if(key === 'limit') return v + '秒';
   if(key === 'matchMin') return v + '分';
@@ -2302,6 +2304,7 @@ function ruleText(key, v){
 function validRule(key, v){
   switch(key){
     case 'direction': return v === 'ja-en' || v === 'en-ja' || v === 'mix';
+    case 'listening': return typeof v === 'boolean';
     case 'reveal': return Number.isInteger(v) && v >= 0 && v <= 3000;
     case 'limit': return Number.isInteger(v) && v >= 3 && v <= 30;
     case 'interval': return Number.isInteger(v) && v >= 500 && v <= 5000;
@@ -2903,14 +2906,14 @@ const SimpleStats = {
 };
 
 /* ===================== 両画面共通の表示(QV) ===================== */
-const QZ = {n:0, phase:'idle', q:null, t0:0, limit:10, sent:false, locked:false, history:[], answered:0, myWrong:false};
+const QZ = {n:0, phase:'idle', q:null, t0:0, limit:10, sent:false, locked:false, history:[], answered:0, myWrong:false, listening:false};
 const QV = {
   reset(){
     QZ.n = 0; QZ.phase = 'idle'; QZ.q = null; QZ.sent = false; QZ.locked = false; QZ.history = []; QZ.answered = 0;
     SimpleStats.reset();
     const exp = $('exp'); exp.dataset.state = 'prev'; exp.innerHTML = '<div class="empty">直前の問題の解説がここに表示されます。</div>';
     $('choices').innerHTML = ''; $('qBox').innerHTML = ''; QV.resetBar();
-    QZ.myWrong = false; QV.hideExpPop();
+    QZ.myWrong = false; QZ.listening = false; QV.hideExpPop();
   },
   on(ev){
     switch(ev.t){
@@ -2918,6 +2921,7 @@ const QV = {
         const word = wordData[ev.w - 1], dir = ev.d === 1 ? 'en-ja' : 'ja-en';   // 方向は出題ごとにホストが決める(ミックス対応)
         const aField = dir === 'ja-en' ? 'en' : 'ja', qField = dir === 'ja-en' ? 'ja' : 'en';
         QZ.q = {word, dir, aField, qField, hard:!!ev.hard, choices:ev.ch.map(id => id < 0 ? {none:true, w:null} : {none:false, w:wordData[id - 1]}), ci:-1};
+        QZ.listening = !!(G.rules && G.rules.listening && dir === 'en-ja');
         QZ.n = ev.n; QZ.phase = 'veil'; QZ.sent = false; QZ.locked = false; QZ.limit = ev.lim;
         QV.resetBar(); QV.renderQuestion(QZ.q);
         $('exp').dataset.state = 'prev';
@@ -2930,6 +2934,7 @@ const QV = {
         QZ.phase = 'answer'; QZ.t0 = performance.now(); QZ.limit = ev.lim;
         document.querySelectorAll('#choices .g-choice').forEach(b => b.classList.remove('veil'));
         QV.startBar(ev.lim);
+        if(QZ.listening && QZ.q) speakEn(QZ.q.word.en);
         break;
       case 'lock':
         if(ev.n !== QZ.n) return;
@@ -2989,12 +2994,14 @@ const QV = {
   renderQuestion(q){
     const text = q.word[q.qField], box = $('qBox');
     box.className = 'g-q ' + (q.qField === 'en' ? 'qen' : 'qja') + ' ' + QV.qSize(text, q.qField) + (q.hard ? ' hard' : '');
-    box.innerHTML = (q.hard ? `<span class="ribbon">★ 難単語 ×${Sim.BAL.score.hardMul}</span>` : '') + `<span class="g-q-text">${esc(text)}</span><span class="q-no">${QZ.n}問目</span>`;
+    box.innerHTML = (q.hard ? `<span class="ribbon">★ 難単語 ×${Sim.BAL.score.hardMul}</span>` : '') + (QZ.listening
+      ? `<span class="g-q-text">🔊 リスニング</span><button type="button" class="q-replay" data-act="replay">🔊 もう一度聞く</button><span class="q-no">${QZ.n}問目</span>`
+      : `<span class="g-q-text">${esc(text)}</span><span class="q-no">${QZ.n}問目</span>`);
     QV.fitQ();
     const cb = $('choices'); cb.classList.remove('resolved');
     cb.innerHTML = q.choices.map((c, i) => c.none
       ? `<button type="button" class="g-choice none veil" data-act="choose" data-fast="1" data-i="${i}"><span class="n">×</span><span class="t"><span class="m">この中にない</span></span></button>`
-      : `<button type="button" class="g-choice ${q.aField} veil" data-act="choose" data-fast="1" data-i="${i}"><span class="n">${i + 1}</span><span class="t"><span class="m">${esc(c.w[q.aField])}</span><span class="s">${esc(c.w[q.qField])}</span></span></button>`
+      : `<button type="button" class="g-choice ${q.aField} veil" data-act="choose" data-fast="1" data-i="${i}"><span class="n">${i + 1}</span><span class="t"><span class="m">${esc(c.w[q.aField])}</span><span class="s">${QZ.listening ? '' : esc(c.w[q.qField])}</span></span></button>`
     ).join('');
   },
   startBar(sec){
@@ -3196,6 +3203,9 @@ const Dev = {
 
 /* ---------------- 更新履歴・遊び方 ---------------- */
 const CHANGELOG = [
+  {v:'1.7', d:'2026-11-19', items:[
+    '新モード「リスニング」を追加。ルール設定でオンにすると、英和の問題(ミックスのときは英和になった問題だけ)で問題文が表示されず、音声だけで答えます。「もう一度聞く」ボタンで聞き直しもできます。'
+  ]},
   {v:'1.6.1', d:'2026-11-19', items:[
     '発音が流れるタイミングを広げました。正解したときだけでなく、不正解・時間切れ・相手が先に正解したときも、答えが表示されるタイミングでその単語の英語の発音が流れます。'
   ]},
@@ -4040,6 +4050,9 @@ const UI = {
       ${seg('book', [{v:'teppeki', t:'鉄壁'}, {v:'target', t:'ターゲット1900'}, {v:'target1200', t:'ターゲット1200'}, {v:'target1000', t:'ターゲット1000'}], R.book || 'teppeki')}
       <div class="row-label">出題方向</div>
       ${seg('dir', [{v:'ja-en', t:'和英'}, {v:'en-ja', t:'英和'}, {v:'mix', t:'ミックス'}], R.direction)}
+      <div class="row-label">リスニング</div>
+      ${seg('listen', [{v:'off', t:'オフ'}, {v:'on', t:'オン'}], R.listening ? 'on' : 'off')}
+      <p class="hint">オンにすると、英和の問題(ミックスのときは英和になった問題だけ)で問題文が表示されず、音声だけで答えます。</p>
       ${stepper('reveal', '選択肢が出るまでの待ち', 0, 3000, 500)}
       ${stepper('limit', '1問の制限時間', 3, 30, 1)}
       ${stepper('interval', '次の問題までの間隔', 500, 5000, 500)}
@@ -4276,6 +4289,8 @@ function handleAct(el){
     case 'castle': G.profile.castle = Number(d.v) | 0; Prof.save(); Net.pushProfile(); break;
     case 'book': Net.changeRule('book', d.v); break;
     case 'dir': Net.changeRule('direction', d.v); break;
+    case 'listen': Net.changeRule('listening', d.v === 'on'); break;
+    case 'replay': if(QZ.q) speakEn(QZ.q.word.en); break;
     case 'size': Net.changeRule('size', d.v); break;
     case 'step': {
       const key = d.key, cur = G.rules[key], min = Number(d.min), max = Number(d.max), stp = Number(d.step);
