@@ -1097,7 +1097,7 @@ body.ot #screen-game::after{content:''; position:absolute; inset:0; pointer-even
 
 /* ================= CONFIG(得点・戦闘の数値は Sim.BAL に集約) ================= */
 const CONFIG = {
-  VERSION: '1.5.1',
+  VERSION: '1.6',
   /* 単語データ: GitHub Gist 2つ(前半 / 後半)。順に結合して使う */
   DATA_URLS: [
     'https://gist.githubusercontent.com/taronaogalaxy002-gif/65144621efb78b5625e0075967f78c1d/raw',
@@ -2958,7 +2958,7 @@ const QV = {
         QZ.answered++;
         const exp = $('exp'); exp.dataset.state = 'cur'; exp.innerHTML = expHtml(entry, true); exp.scrollTop = 0;
         if(QZ.myWrong) QV.showExpPop(entry);
-        if(result === 'me'){ HUD.pop(ev.g); Snd.play('correct'); vib([25]); }
+        if(result === 'me'){ HUD.pop(ev.g); Snd.play('correct'); vib([25]); speakEn(q.word.en); }
         else if(result === 'opp'){ Snd.play('tick'); }
         $('oppState').textContent = '';
         break;
@@ -3074,6 +3074,16 @@ function saveRules(){ try{ localStorage.setItem(LS_RULES, JSON.stringify(G.rules
 function vib(p){ if(Settings.v.vib && navigator.vibrate){ try{ navigator.vibrate(p); }catch(e){} } }
 
 /* ---------------- 効果音(WebAudioで合成。音源ファイルなし) ---------------- */
+/* 英語の発音を読み上げる(正解時)。日英どちらの出題でも英語のみ */
+function speakEn(text){
+  try{
+    if(!('speechSynthesis' in window) || !text) return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(String(text));
+    u.lang = 'en-US'; u.rate = 0.92;
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
 const Snd = (function(){
   let ctx = null, master = null; const last = {};
   function ensure(){
@@ -3185,6 +3195,9 @@ const Dev = {
 
 /* ---------------- 更新履歴・遊び方 ---------------- */
 const CHANGELOG = [
+  {v:'1.6', d:'2026-11-19', items:[
+    '自分が正解したとき、その単語の英語の発音が自動で再生されるようになりました(日英どちらの出題でも英語のみ)。'
+  ]},
   {v:'1.5.1', d:'2026-11-19', items:[
     '単語帳を切り替えたとき、セクションの範囲・語数の表示がずれ、出題範囲が狭くなって同じ問題が繰り返し出る不具合を修正しました。'
   ]},
