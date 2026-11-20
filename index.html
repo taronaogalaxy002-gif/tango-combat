@@ -453,6 +453,7 @@ button{font-family:var(--font-sans);}
 .bd.syn{background:var(--badge-syn-bg); border-color:var(--badge-syn-border); color:var(--badge-syn-text);}
 .bd.ant{background:var(--badge-ant-bg); border-color:var(--badge-ant-border); color:var(--badge-ant-text);}
 .exp-loc{margin-top:4px; font-size:.64rem; color:var(--text-sub);}
+.exp-gap{margin-top:3px; font-size:.7rem; font-weight:700; color:var(--text-sub); font-variant-numeric:tabular-nums;}
 .exp-loc .imp{color:var(--accent-2); font-weight:800; margin-right:6px;}
 .exp-pop{position:absolute; inset:0; z-index:45; display:flex; align-items:center; justify-content:center; padding:20px 16px; background:rgba(12,9,24,.48);}
 .exp-pop[hidden]{display:none !important;}
@@ -467,6 +468,7 @@ button{font-family:var(--font-sans);}
 .exp-pop-body .exp-rel .lab{font-size:.78rem;}
 .exp-pop-body .bd{font-size:.88rem; padding:2px 10px;}
 .exp-pop-body .exp-loc{font-size:.78rem;}
+.exp-pop-body .exp-gap{font-size:.85rem;}
 
 /* ---------- モーダル ---------- */
 .modal{position:fixed; inset:0; z-index:50; display:none; justify-content:center; background:rgba(0,0,0,.55);}
@@ -708,8 +710,9 @@ body.simple-mode #screen-game .g-field{display:none !important;}
 body.simple-mode #screen-game{padding:0; background:var(--bg);}
 body.simple-mode #simpleStats{
   display:flex; flex:0 0 auto; flex-direction:column; gap:7px;
-  padding:calc(9px + var(--safe-top)) 10px 0;
+  padding:calc(9px + var(--safe-top)) 10px 0; position:relative;
 }
+.simple-pins{flex:0 0 auto; padding:1px 2px 0;}
 .simple-stats-head{display:flex; align-items:center; justify-content:space-between; gap:8px; min-height:24px;}
 .simple-time{margin-left:auto;}
 .simple-stats-title{font-size:.72rem; font-weight:900; letter-spacing:.12em; color:var(--text-sub);}
@@ -844,6 +847,10 @@ body.ot #screen-game::after{content:''; position:absolute; inset:0; pointer-even
 .ping i{width:7px; height:7px; border-radius:50%; background:#9aa3ad; flex:0 0 auto;}
 .ping.good i{background:#2eb872;} .ping.mid i{background:#f0b429;} .ping.bad i{background:#e5533d;} .ping.cpu i{background:#6b7fd7;}
 .ping.bad{color:#c4361f;}
+.ping .bars{display:inline-flex; align-items:flex-end; gap:1.5px; height:10px;}
+.ping .bars b{width:3px; border-radius:1px; background:rgba(128,138,150,.35);}
+.ping .bars b:nth-child(1){height:3px;} .ping .bars b:nth-child(2){height:5px;} .ping .bars b:nth-child(3){height:8px;} .ping .bars b:nth-child(4){height:10px;}
+.ping.good .bars b.on{background:#2eb872;} .ping.mid .bars b.on{background:#f0b429;} .ping.bad .bars b.on{background:#e5533d;} .ping.cpu .bars b.on{background:#6b7fd7;}
 #cvWrap > #pingGame{position:absolute; left:6px; top:5px; z-index:4; pointer-events:none; background:rgba(0,0,0,.42); color:#fff; padding:2px 6px; font-size:.62rem;}
 #cvWrap > #pingGame.cpu{display:none;}
 .pcard .pi .ping{align-self:flex-start; margin-top:3px;}
@@ -975,6 +982,7 @@ body.ot #screen-game::after{content:''; position:absolute; inset:0; pointer-even
     <div class="simple-stats" id="simpleStats" aria-live="polite">
       <div class="simple-stats-head">
         <div><span class="simple-stats-title">BATTLE INDEX</span><span class="simple-stats-note">正答率 × 解答速度</span></div>
+        <span class="ping na" id="pingSimple"></span>
         <span class="hud-time simple-time" id="simpleTime"><b id="simpleClock">--:--</b><small id="simplePhase"></small></span>
         <button type="button" class="pill-btn sm" data-act="back">退出</button>
       </div>
@@ -993,6 +1001,8 @@ body.ot #screen-game::after{content:''; position:absolute; inset:0; pointer-even
         </div>
       </div>
       <div class="simple-stat-foot">初期値30.0 ・ 正解は速いほど加点(＋1.0〜2.5) ・ 誤答は−2.0</div>
+      <div class="pins simple-pins" id="pinBarSimple"></div>
+      <div class="pin-layer" id="pinLayerSimple"></div>
     </div>
 
     <div class="g-quiz">
@@ -1126,7 +1136,7 @@ body.ot #screen-game::after{content:''; position:absolute; inset:0; pointer-even
 
 /* ================= CONFIG(得点・戦闘の数値は Sim.BAL に集約) ================= */
 const CONFIG = {
-  VERSION: '1.9',
+  VERSION: '2.0',
   /* 単語データ: GitHub Gist 2つ(前半 / 後半)。順に結合して使う */
   DATA_URLS: [
     'https://gist.githubusercontent.com/taronaogalaxy002-gif/65144621efb78b5625e0075967f78c1d/raw',
@@ -2936,7 +2946,7 @@ const SimpleStats = {
 };
 
 /* ===================== 両画面共通の表示(QV) ===================== */
-const QZ = {n:0, phase:'idle', q:null, t0:0, limit:10, sent:false, locked:false, history:[], answered:0, myWrong:false, listening:false, oni:false, view:0};
+const QZ = {n:0, phase:'idle', q:null, t0:0, limit:10, sent:false, locked:false, history:[], answered:0, myWrong:false, listening:false, oni:false, view:0, myMs:null, oppMs:null};
 const QV = {
   reset(){
     QZ.n = 0; QZ.phase = 'idle'; QZ.q = null; QZ.sent = false; QZ.locked = false; QZ.history = []; QZ.answered = 0;
@@ -2953,7 +2963,7 @@ const QV = {
         QZ.q = {word, dir, aField, qField, hard:!!ev.hard, choices:ev.ch.map(id => id < 0 ? {none:true, w:null} : {none:false, w:wordData[id - 1]}), ci:-1};
         QZ.listening = !!(G.rules && G.rules.listening && dir === 'en-ja');
         QZ.oni = !!(G.rules && G.rules.oni); QZ.view = 0;
-        QZ.n = ev.n; QZ.phase = 'veil'; QZ.sent = false; QZ.locked = false; QZ.limit = ev.lim;
+        QZ.n = ev.n; QZ.phase = 'veil'; QZ.sent = false; QZ.locked = false; QZ.limit = ev.lim; QZ.myMs = null; QZ.oppMs = null;
         QV.resetBar(); QV.renderQuestion(QZ.q);
         $('exp').dataset.state = 'prev';
         $('oppState').textContent = '';
@@ -2970,6 +2980,7 @@ const QV = {
         break;
       case 'lock':
         if(ev.n !== QZ.n) return;
+        if(ev.p === G.me) QZ.myMs = ev.ms; else QZ.oppMs = ev.ms;
         SimpleStats.record(ev.p, false, ev.ms, QZ.limit);
         if(ev.p === G.me){
           QZ.locked = true; QZ.myWrong = true;
@@ -2991,6 +3002,13 @@ const QV = {
         Array.from(box.children).forEach((b, i) => { b.classList.remove('locked'); if(i === ev.ci) b.classList.add('correct'); b.disabled = true; });
         let result = ev.ty === 'win' ? (ev.p === G.me ? 'me' : 'opp') : ev.ty === 'timeout' ? 'timeout' : 'wrong';
         const entry = {n:ev.n, word:q.word, isNone, hard:q.hard, result, gained:ev.g, trail:!!ev.tr};
+        if(ev.ty === 'win' && (ev.p === 0 || ev.p === 1)){ if(ev.p === G.me) QZ.myMs = ev.ms; else QZ.oppMs = ev.ms; }
+        if(result === 'opp' && QZ.oppMs != null){
+          const oSec = (QZ.oppMs / 1000).toFixed(2);
+          entry.gap = QZ.myMs != null
+            ? `回答タイム あなた ${(QZ.myMs / 1000).toFixed(2)}秒 / 相手 ${oSec}秒（差 ${(Math.abs(QZ.myMs - QZ.oppMs) / 1000).toFixed(2)}秒）`
+            : `相手は ${oSec}秒で正解（あなたは未回答）`;
+        }
         QZ.history.unshift(entry); if(QZ.history.length > CONFIG.HISTORY_MAX) QZ.history.pop();
         QZ.answered++;
         const exp = $('exp'); exp.dataset.state = 'cur'; exp.innerHTML = expHtml(entry, true); exp.scrollTop = 0;
@@ -3007,6 +3025,7 @@ const QV = {
   tap(idx){
     if(QZ.phase !== 'answer' || QZ.locked || QZ.sent) return;
     QZ.sent = true;
+    if(QZ.myMs == null) QZ.myMs = Math.max(0, Math.round(performance.now() - QZ.t0));
     const b = $('choices').children[idx]; if(b) b.classList.add('picked');
     const spent = Math.round(clamp(performance.now() - QZ.t0, 0, QZ.limit * 1000));
     if(G.role === 'host') qeAnswer(0, QZ.n, idx, spent); else Net.sendHost({t:'ans', n:QZ.n, i:idx, ms:spent});
@@ -3076,6 +3095,7 @@ function expHtml(e, live){
   if(e.isNone) parts.push('<span class="chip ng">選択肢に正解なし</span>');
   let h = `<div class="head">${parts.join('')}</div>`;
   h += `<div class="exp-main"><span class="exp-en">${esc(w.en)}</span><span class="exp-ja">${esc(w.ja)}</span></div>`;
+  if(e.gap) h += `<div class="exp-gap">⏱ ${esc(e.gap)}</div>`;
   if(w.syn) h += `<div class="exp-rel"><span class="lab">= 類義語</span>${w.syn.split(',').map(s => `<span class="bd syn">${esc(s.trim())}</span>`).join('')}</div>`;
   if(w.ant) h += `<div class="exp-rel"><span class="lab">↔ 反対語</span>${w.ant.split(',').map(s => `<span class="bd ant">${esc(s.trim())}</span>`).join('')}</div>`;
   const sec = SEC_OF[w.id], imp = w.imp === '**' ? '重要度 ★★' : w.imp === '*' ? '重要度 ★' : '';
@@ -3291,6 +3311,12 @@ const TIPS_HTML = `
 
 /* ---------------- 更新履歴・遊び方 ---------------- */
 const CHANGELOG = [
+  {v:'2.0', d:'2026-11-20', items:[
+    '簡易モードでも試合中にネット状況が見えるようになりました。アンテナの棒の本数と色（緑=快適／黄=ふつう／赤=遅い）＋数値で表示します。',
+    '簡易モードでもピンズ（😍🥵😭👏👍👎🤓）を送れる・見られるようになりました。',
+    '相手に先に正解された問題では、解説に回答タイム（あなた／相手／差）を表示するようになりました。',
+    '試合結果の最後に、両者の平均回答時間を表示するようになりました。'
+  ]},
   {v:'1.9', d:'2026-11-19', items:[
     'ホームに単語帳アプリ（フラッシュカード）へのリンクを追加。行き来できるようになりました。'
   ]},
@@ -3628,7 +3654,8 @@ const Game = {
       if(rate[0] !== rate[1]){ S.winner = rate[0] > rate[1] ? 0 : 1; S.reason = 'rating'; }
       else { S.winner = -1; S.reason = 'draw'; }
     }
-    const res = {w:S.winner, rs:S.reason, rate:rate, pts:[Math.round(S.pts[0]), Math.round(S.pts[1])], tiles:[Sim.tileCount(S, 0), Sim.tileCount(S, 1)],
+    const avgMs = [0, 1].map(i => { const s = SimpleStats.players[i]; return s && s.attempts ? Math.round(s.totalMs / s.attempts) : -1; });
+    const res = {w:S.winner, rs:S.reason, rate:rate, avg:avgMs, pts:[Math.round(S.pts[0]), Math.round(S.pts[1])], tiles:[Sim.tileCount(S, 0), Sim.tileCount(S, 1)],
                  score:[Sim.scoreOf(S, 0), Sim.scoreOf(S, 1)], qs:QE.stat.map(x => Object.assign({}, x)), st:S.stat.map(x => Object.assign({}, x)), n:QE.n, t:Math.round(S.t)};
     G.result = res;
     Game.sendSnap();
@@ -4109,6 +4136,10 @@ const UI = {
     else if(!Net.rtt){ txt = '計測中'; cls = 'na'; }
     else{ txt = Net.rtt + 'ms'; cls = Net.rtt < 100 ? 'good' : Net.rtt < 250 ? 'mid' : 'bad'; }
     for(const id of ['pingGame', 'pingLobby']){ const e = $(id); if(e){ e.className = 'ping ' + cls; e.innerHTML = '<i></i>' + txt; } }
+    const ps = $('pingSimple');
+    if(ps){ const nBars = (cls === 'good' || cls === 'cpu') ? 4 : cls === 'mid' ? 2 : cls === 'bad' ? 1 : 0;
+      ps.className = 'ping ' + cls;
+      ps.innerHTML = '<span class="bars">' + [1, 2, 3, 4].map(i => `<b class="${i <= nBars ? 'on' : ''}"></b>`).join('') + '</span>' + txt; }
   },
   renderRules(){
     const pane = $('paneRules'), st = pane.scrollTop, R = G.rules, me = G.players[G.me], op = G.players[1 - G.me];
@@ -4202,8 +4233,11 @@ const UI = {
     $('hudCombo').innerHTML = '<span class="cw">連続 </span>0'; $('hudCombo').classList.add('zero'); $('hudComboOpp').innerHTML = '<span class="cw">連続 </span>0'; $('hudComboOpp').classList.add('zero');
     $('hudClock').textContent = G.rules.matchMin + ':00'; $('hudPhase').textContent = ''; $('hudTime').classList.remove('ot', 'low');
     const sC = $('simpleClock'); if(sC){ sC.textContent = G.rules.matchMin + ':00'; $('simplePhase').textContent = ''; $('simpleTime').classList.remove('ot', 'low'); }
-    $('pinBar').innerHTML = PINS.map((p, i) => `<button type="button" class="pin-btn" data-act="pin" data-i="${i}" aria-label="ピンズ ${p}">${p}</button>`).join('');
+    const pinsHtml = PINS.map((p, i) => `<button type="button" class="pin-btn" data-act="pin" data-i="${i}" aria-label="ピンズ ${p}">${p}</button>`).join('');
+    $('pinBar').innerHTML = pinsHtml;
+    const pbs = $('pinBarSimple'); if(pbs) pbs.innerHTML = pinsHtml;
     $('pinLayer').innerHTML = '';
+    const pls = $('pinLayerSimple'); if(pls) pls.innerHTML = '';
     Game.buildShop();
   },
   sendPin(i){
@@ -4214,11 +4248,13 @@ const UI = {
   },
   pin(from, p, remote){
     if(!PINS.includes(p)) return;
-    const layer = $('pinLayer'); if(!layer) return;
-    while(layer.children.length >= 6) layer.removeChild(layer.firstChild);
-    const el = document.createElement('span'); el.className = 'pin-bub ' + (from === G.me ? 'mine' : 'opp'); el.textContent = p;
-    el.style.setProperty('--dx', (Math.random() * 26 - 13).toFixed(0) + 'px');
-    layer.appendChild(el); setTimeout(() => el.remove(), 1900);
+    for(const lid of ['pinLayer', 'pinLayerSimple']){
+      const layer = $(lid); if(!layer) continue;
+      while(layer.children.length >= 6) layer.removeChild(layer.firstChild);
+      const el = document.createElement('span'); el.className = 'pin-bub ' + (from === G.me ? 'mine' : 'opp'); el.textContent = p;
+      el.style.setProperty('--dx', (Math.random() * 26 - 13).toFixed(0) + 'px');
+      layer.appendChild(el); setTimeout(() => el.remove(), 1900);
+    }
     if(remote) Snd.play('pin');
   },
 
@@ -4237,8 +4273,10 @@ const UI = {
     const battleRows = row('陣地の点数', res.score[me], res.score[op]) + row('保有マス', res.tiles[me], res.tiles[op]) + quizRows +
       row('武器の購入', st[me].bought, st[op].bought) + row('出撃', st[me].launched, st[op].launched) +
       row('占領したマス', st[me].captured, st[op].captured) + row('奪われたマス', st[me].lost, st[op].lost);
+    const avgTxt = v => (typeof v === 'number' && v >= 0) ? (v / 1000).toFixed(2) + '秒' : '—';
+    const avgRow = res.avg ? row('平均回答時間', avgTxt(res.avg[me]), avgTxt(res.avg[op])) : '';
     $('resTable').innerHTML = `<div class="r head"><span>${nm(me)}</span><em></em><span>${nm(op)}</span></div>` +
-      (res.rate ? row('偏差値', res.rate[me].toFixed(1), res.rate[op].toFixed(1)) + quizRows : battleRows) +
+      (res.rate ? row('偏差値', res.rate[me].toFixed(1), res.rate[op].toFixed(1)) + quizRows + avgRow : battleRows + avgRow) +
       `<div class="r foot"><span></span><em>${res.n}問 ・ ${Math.floor(res.t / 60)}分${res.t % 60}秒</em><span></span></div>`;
     UI.renderResultFoot();
     UI.addChat({from:-1, text:'試合が終わりました。ここでチャットできます'});
