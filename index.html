@@ -4728,7 +4728,7 @@ const Diag = {
     const pos = clamp(est / 12000 * 100, 0, 100);
     const mapRows = DIAG_MAP.map((r, i) => {
       const from = i === 0 ? 0 : DIAG_MAP[i - 1].to;
-      const mine = est > from && est <= r.to;
+      const mine = est <= r.to && (i === 0 || est > from);
       return `<div class="dg-map-row${mine ? ' mine' : ''}"><span class="dg-map-name">${r.name}</span><span class="dg-map-cum">${r.cum}</span>${mine ? '<span class="dg-map-you">← あなたはここ</span>' : ''}</div>`;
     }).join('');
     const bandHtml = bandRows.map(b =>
