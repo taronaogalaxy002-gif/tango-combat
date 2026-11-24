@@ -1251,7 +1251,9 @@ const BOOKS = {
   target1200:{label:'ターゲット1200', short:'ターゲット1200', expected:1700, starts:TARGET1200_SECTION_STARTS, titles:TARGET1200_SECTION_TITLES, hardFrom:99,
           urls:['https://raw.githubusercontent.com/taronaogalaxy002-gif/tango-data/main/target1200_part1.json', 'https://raw.githubusercontent.com/taronaogalaxy002-gif/tango-data/main/target1200_part2.json']},
   target1000:{label:'熟語ターゲット1000', short:'ターゲット1000', expected:1000, starts:JUKUGO_SECTION_STARTS, titles:JUKUGO_SECTION_TITLES, hardFrom:5,
-          urls:['https://raw.githubusercontent.com/taronaogalaxy002-gif/tango-data/main/jukugo1000_part1.json', 'https://raw.githubusercontent.com/taronaogalaxy002-gif/tango-data/main/jukugo1000_part2.json']}
+          urls:['https://raw.githubusercontent.com/taronaogalaxy002-gif/tango-data/main/jukugo1000_part1.json', 'https://raw.githubusercontent.com/taronaogalaxy002-gif/tango-data/main/jukugo1000_part2.json']},
+  kobun315:{label:'重要古文単語315', short:'古文単語315', expected:452, starts:[1,101,201,301,401], titles:['単語','単語','単語','単語','単語'], hardFrom:99,
+          urls:['https://raw.githubusercontent.com/taronaogalaxy002-gif/tango-data/main/kobun315_part1.json', 'https://raw.githubusercontent.com/taronaogalaxy002-gif/tango-data/main/kobun315_part2.json']}
 };
 let curBook = 'teppeki';
 const bookCache = {};
@@ -2400,7 +2402,7 @@ function validRule(key, v){
     case 'size': return v === 's' || v === 'm' || v === 'l';
     case 'cpuSpeed': return typeof v === 'number' && v >= CONFIG.CPU.speedMin && v <= CONFIG.CPU.speedMax && Math.abs(v * 2 - Math.round(v * 2)) < 1e-9;
     case 'cpuLevel': return v === 'n' || v === 'a';
-    case 'book': return v === 'teppeki' || v === 'target' || v === 'target1200' || v === 'target1000';
+    case 'book': return v === 'teppeki' || v === 'target' || v === 'target1200' || v === 'target1000' || v === 'kobun315';
     case 'sections': return Array.isArray(v) && v.length > 0 && v.every(i => Number.isInteger(i) && i >= 0 && i < 50);
   }
   return false;
@@ -3194,13 +3196,13 @@ function saveRules(){ try{ localStorage.setItem(LS_RULES, JSON.stringify(G.rules
 function vib(p){ if(Settings.v.vib && navigator.vibrate){ try{ navigator.vibrate(p); }catch(e){} } }
 
 /* ---------------- 効果音(WebAudioで合成。音源ファイルなし) ---------------- */
-/* 英語の発音を読み上げる(答えの表示時)。日英どちらの出題でも英語のみ */
+/* 発音を読み上げる(答えの表示時)。英語の本は英語、古文単語315は日本語で読み上げる */
 function speakEn(text){
   try{
     if(!('speechSynthesis' in window) || !text) return;
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(String(text));
-    u.lang = 'en-US'; u.rate = 0.92;
+    u.lang = (typeof curBook !== 'undefined' && curBook === 'kobun315') ? 'ja-JP' : 'en-US'; u.rate = 0.92;
     speechSynthesis.speak(u);
   }catch(e){}
 }
@@ -4225,7 +4227,7 @@ const UI = {
     </div>` : ''}
     <div class="panel"><h2 class="panel-title">ルール<small>どちらも変更できます</small></h2>
       <div class="row-label">単語帳</div>
-      ${seg('book', [{v:'teppeki', t:'鉄壁'}, {v:'target', t:'ターゲット1900'}, {v:'target1200', t:'ターゲット1200'}, {v:'target1000', t:'ターゲット1000'}], R.book || 'teppeki')}
+      ${seg('book', [{v:'teppeki', t:'鉄壁'}, {v:'target', t:'ターゲット1900'}, {v:'target1200', t:'ターゲット1200'}, {v:'target1000', t:'ターゲット1000'}, {v:'kobun315', t:'重要古文単語315'}], R.book || 'teppeki')}
       <div class="row-label">出題方向</div>
       ${seg('dir', [{v:'ja-en', t:'和英'}, {v:'en-ja', t:'英和'}, {v:'mix', t:'ミックス'}], R.direction)}
       <div class="row-label">モード</div>
