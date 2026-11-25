@@ -2418,10 +2418,13 @@ function wrapPeerConn(c){
   c.on('close', closed); c.on('error', closed);
   return conn;
 }
-/* 通信設定: STUNを複数 + 中継(TURN)。回線によって直接つながらない相手とも、中継でつながりやすくする */
+/* 通信設定: 大富豪（接続が安定している方）に合わせて、STUN複数 + 中継(TURN)を PeerJS公式・OpenRelay の両方にする。直接つながらない回線同士でも中継でつながりやすくする */
 const ICE_CONFIG = {iceServers:[
-  {urls:['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302', 'stun:stun.cloudflare.com:3478']},
-  {urls:['turn:openrelay.metered.ca:80', 'turn:openrelay.metered.ca:443', 'turn:openrelay.metered.ca:443?transport=tcp'], username:'openrelayproject', credential:'openrelayproject'}
+  {urls:['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302']},
+  {urls:'stun:stun.cloudflare.com:3478'},
+  {urls:'stun:global.stun.twilio.com:3478'},
+  {urls:['turn:eu-0.turn.peerjs.com:3478', 'turn:us-0.turn.peerjs.com:3478'], username:'peerjs', credential:'peerjsp'},
+  {urls:['turn:openrelay.metered.ca:80', 'turn:openrelay.metered.ca:443', 'turn:openrelay.metered.ca:443?transport=tcp', 'turns:openrelay.metered.ca:443'], username:'openrelayproject', credential:'openrelayproject'}
 ], iceCandidatePoolSize:2};
 const peerOpts = () => ({debug:0, config:ICE_CONFIG});
 const SOFT_ERR = ['network', 'server-error', 'socket-error', 'socket-closed', 'webrtc'];
