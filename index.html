@@ -3061,6 +3061,9 @@ const QV = {
           entry.gap = QZ.myMs != null
             ? `回答タイム あなた ${(QZ.myMs / 1000).toFixed(2)}秒 / 相手 ${oSec}秒（差 ${(Math.abs(QZ.myMs - QZ.oppMs) / 1000).toFixed(2)}秒）`
             : `相手は ${oSec}秒で正解（あなたは未回答）`;
+          /* 簡易モードのみ: 自分も押していて時間で負けた時、負け幅をチップに出す(自分が先に押した/未回答の時は出さない) */
+          if(Settings.v.simple && !QZ.oni && QZ.myMs != null && QZ.myMs > QZ.oppMs)
+            entry.margin = ((QZ.myMs - QZ.oppMs) / 1000).toFixed(2);
         }
         QZ.history.unshift(entry); if(QZ.history.length > CONFIG.HISTORY_MAX) QZ.history.pop();
         QZ.answered++;
@@ -3141,7 +3144,7 @@ function expHtml(e, live){
   const w = e.word, parts = [];
   if(live) parts.push('<span class="lbl-cur">解説</span><span class="lbl-prev">前の問題</span>');
   if(e.result === 'me') parts.push(`<span class="chip ok">正解 +${e.gained}pt${e.trail ? '(追い上げ×' + Sim.BAL.score.trailMul + ')' : ''}</span>`);
-  else if(e.result === 'opp') parts.push('<span class="chip ng">相手が先に正解</span>');
+  else if(e.result === 'opp') parts.push(`<span class="chip ng">相手が先に正解${e.margin ? `（${e.margin}秒差）` : ''}</span>`);
   else if(e.result === 'timeout') parts.push('<span class="chip ng">時間切れ</span>');
   else parts.push('<span class="chip ng">両者ミス</span>');
   if(e.hard) parts.push(`<span class="chip hard">★ 難単語 ×${Sim.BAL.score.hardMul}</span>`);
